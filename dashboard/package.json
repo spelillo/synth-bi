@@ -2,6 +2,7 @@
   "name": "synth-bi-dashboard",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "React island: the dashboard canvas mounted into the vanilla shell at #dashboard-root (see ../bridge.js)",
   "scripts": {
     "dev": "vite",

@@ -3,29 +3,409 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Synth-BI</title>
-  <link rel="stylesheet" href="/tokens.css">
+  <title>Synth-BI — turn any file into a dashboard</title>
+  <meta name="description" content="Upload a CSV, JSON, or Excel file and build a dashboard in your browser — by hand or with AI — then export it to Power BI or Tableau.">
   <!--
-    STUB — see BUILD-INSTRUCTIONS.md for the full home-view / app-view layout
-    spec (user flow, UI/UX). Structure mirrors synth-sql's synth.html:
-    home-view (saved dashboards + drop zone) swaps for app-view (header, tab
-    bar, tab panels) once a file is loaded.
+    Structure mirrors synth-sql's synth.html: home-view (saved dashboards +
+    drop zone) swaps for app-view (header, tab bar, tab panels) once a file
+    is loaded. Layout/flow spec: BUILD-INSTRUCTIONS.md §4–§5. Styling:
+    tokens.css (design tokens) + app.css (shell components).
   -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/app.css">
+  <script src="https://cdn.jsdelivr.net/npm/sql.js@1.8.0/dist/sql-wasm.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-  <div id="home-view">
-    <!-- home-grid: "Your dashboards" (left) / drop zone (center) / how-it-works + save-account card (right) -->
+  <header class="nav-bar">
+    <a href="/" class="brand" title="Synth-BI home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-word">synth</span><span class="brand-bi">BI</span>
+    </a>
+    <div class="nav-right">
+      <button id="header-dashboards-btn" class="btn btn-tertiary btn-sm" onclick="openHome()" hidden>
+        <i class="ph ph-squares-four" aria-hidden="true"></i><span class="nav-label">Your dashboards</span>
+      </button>
+      <button id="sign-in-btn" class="btn btn-secondary btn-sm" onclick="toggleAuthPanel()">Sign in</button>
+      <span id="status" class="status-dot" data-state="loading" aria-live="polite">Starting…</span>
+    </div>
+  </header>
+
+  <input type="file" id="file-upload" class="visually-hidden" accept=".csv,.json,.ndjson,.jsonl,.xlsx,.xlsm" multiple onchange="uploadFiles(event)" tabindex="-1" aria-hidden="true">
+  <input type="file" id="file-upload-add" class="visually-hidden" accept=".csv,.json,.ndjson,.jsonl,.xlsx,.xlsm" multiple onchange="addTables(event)" tabindex="-1" aria-hidden="true">
+
+  <!-- ================= Home view ================= -->
+  <main id="home-view">
+    <div class="home-grid">
+      <section class="home-dashboards card-content" aria-labelledby="home-dashboards-title">
+        <div class="home-section-head">
+          <h2 id="home-dashboards-title" class="section-title">Your dashboards</h2>
+          <button type="button" id="home-return-btn" class="btn btn-tertiary btn-sm" onclick="returnToWorkspace()" hidden>
+            <i class="ph ph-arrow-left" aria-hidden="true"></i> Back to open dashboard
+          </button>
+        </div>
+        <div id="home-dashboards-body" class="home-dashboards-body" aria-live="polite">
+          <div class="home-empty">
+            <i class="ph ph-squares-four home-empty-icon" aria-hidden="true"></i>
+            <p class="home-empty-title">Saved dashboards live here</p>
+            <p class="home-empty-body">Sign in to save a dashboard and pick it up on any device. You don't need an account to build one.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-upload hero-band" aria-labelledby="home-upload-title">
+        <div id="home-dropzone" class="home-dropzone" tabindex="0" role="button" aria-describedby="home-upload-sub">
+          <h1 id="home-upload-title" class="display-hero">Turn any file into a dashboard</h1>
+          <p id="home-upload-sub" class="home-dropzone-sub">Drop a <strong>CSV</strong>, <strong>JSON</strong>, or <strong>Excel</strong> file here. It loads into a real database right in this tab, and never leaves your browser unless you choose to save it.</p>
+          <button type="button" class="btn btn-primary btn-lg" id="home-dropzone-btn">
+            <i class="ph ph-upload-simple" aria-hidden="true"></i> Choose a file
+          </button>
+          <p class="home-dropzone-formats">.csv · .json · .ndjson · .xlsx — Excel workbooks load every sheet as its own table</p>
+          <p id="home-upload-message" class="home-upload-message" role="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="home-flow" aria-labelledby="home-flow-title">
+        <div class="card-content">
+          <h2 id="home-flow-title" class="section-title">How it works</h2>
+          <ol class="home-flow-steps">
+            <li>
+              <span class="home-flow-num">1</span>
+              <div><strong>Upload</strong><span>CSV, JSON, or Excel. Several files (or sheets) become related tables.</span></div>
+            </li>
+            <li>
+              <span class="home-flow-num">2</span>
+              <div><strong>Build tiles, by hand or with AI</strong><span>Pick a table, a group-by, and a measure — or write SQL. Signed in, just ask the assistant.</span></div>
+            </li>
+            <li>
+              <span class="home-flow-num">3</span>
+              <div><strong>Export to Power BI or Tableau</strong><span>Typed Excel tables for Power BI, plus a Tableau data source that opens already connected.</span></div>
+            </li>
+          </ol>
+        </div>
+        <div class="card-feature-green home-save-card" id="home-save-card">
+          <strong id="home-save-title">A free account adds more</strong>
+          <span id="home-save-body">Save dashboards across devices, build tiles with the AI assistant, and export to Power BI or Tableau.</span>
+          <button type="button" class="btn btn-tertiary btn-sm" id="home-save-btn" onclick="openAccountModal('signup')">Create a free account</button>
+        </div>
+      </section>
+    </div>
+
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <div class="brand-word brand-word-footer">synth<span class="brand-bi">BI</span></div>
+        <nav class="site-footer-links" aria-label="Footer">
+          <a href="/welcome">About</a>
+          <a href="/guides">Guides</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/privacy">Privacy Policy</a>
+        </nav>
+        <div class="site-footer-copy">&copy; 2026 Synth. All rights reserved.</div>
+      </div>
+    </footer>
+  </main>
+
+  <div id="loading-overlay" class="loading-overlay" hidden>
+    <div class="loading-box">
+      <div class="loading-label">Loading your data…</div>
+      <div class="loading-track"><div class="loading-fill" id="loading-fill"></div></div>
+      <div class="loading-caption">Parsing your file &amp; building a local database</div>
+    </div>
   </div>
 
+  <!-- ================= App view ================= -->
   <div id="app-view" hidden>
-    <!-- header: workspace switcher, + add table, save-to-cloud, help -->
-    <!-- tabs: Dashboard / Table View / Relationships -->
-    <!-- #tab-dashboard hosts #dashboard-root, mounted by the React island below -->
-    <div id="tab-dashboard" class="tab-panel active">
-      <div id="dashboard-root"></div>
+    <div class="app-toolbar">
+      <div class="app-toolbar-left">
+        <h1 class="workspace-name" id="workspace-name">Untitled dashboard</h1>
+        <div id="file-info" class="file-info"></div>
+      </div>
+      <div class="app-toolbar-right">
+        <button id="add-table-btn" class="btn btn-secondary btn-sm" onclick="openAddTablePicker()">
+          <i class="ph ph-table" aria-hidden="true"></i> Add table
+        </button>
+        <button id="save-cloud-btn" class="btn btn-secondary btn-sm" hidden onclick="saveWorkspaceToCloud()">Save to cloud</button>
+        <button class="btn btn-icon" onclick="openHelpPanel()" title="How this works" aria-label="How this works"><i class="ph ph-question" aria-hidden="true"></i></button>
+      </div>
     </div>
-    <div id="tab-table" class="tab-panel"></div>
-    <div id="tab-relationships" class="tab-panel"></div>
+
+    <div class="app-subbar">
+      <div class="tabs" role="tablist" aria-label="Workspace views">
+        <button class="tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">Dashboard</button>
+        <button class="tab-btn" data-tab="table" role="tab" aria-selected="false">Table View</button>
+        <button class="tab-btn" data-tab="relationships" id="relationships-tab-btn" role="tab" aria-selected="false" hidden>Relationships</button>
+      </div>
+      <div id="table-chip-bar" class="table-chip-bar" aria-label="Tables in this workspace"></div>
+    </div>
+
+    <div class="tab-panels">
+      <!-- #tab-dashboard hosts #dashboard-root, mounted by the React island below -->
+      <div id="tab-dashboard" class="tab-panel active">
+        <div id="dashboard-root"></div>
+      </div>
+
+      <div id="tab-table" class="tab-panel">
+        <div class="table-view-panel card-content">
+          <div class="table-view-toolbar">
+            <input type="text" id="table-search" class="text-input text-input-sm" placeholder="Search all columns…" aria-label="Search all columns">
+            <div class="table-view-toolbar-right">
+              <div id="table-view-meta" class="file-info"></div>
+              <button class="btn btn-secondary btn-sm" id="table-stats-toggle-btn" onclick="toggleColumnStats()" aria-expanded="false">Column stats</button>
+              <button class="btn btn-secondary btn-sm" id="export-tableview-csv-btn" hidden onclick="exportResultsCSV('tableview')">Download CSV</button>
+            </div>
+          </div>
+          <div id="table-view-stats-panel" class="table-view-stats-panel" hidden></div>
+          <div id="table-view-scroll-top" class="results-scroll-top">
+            <div id="table-view-scroll-top-inner"></div>
+          </div>
+          <div id="table-view-results" class="data-table-wrap">
+            <div class="empty">Upload a file to see its data here</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-relationships" class="tab-panel">
+        <div class="erd-panel">
+          <p class="erd-intro">Synth-BI guesses relationships by matching column names like <code>customer_id</code> to another table's <code>id</code>. Suggestions are dashed until you confirm them; drag from one column to another to connect them yourself. Confirmed relationships are shared with the AI assistant as join hints.</p>
+          <div id="erd-canvas" class="erd-canvas"></div>
+          <div class="card-content erd-list-section">
+            <h2 class="section-title">Relationships</h2>
+            <div id="relationship-list" class="relationship-list"></div>
+          </div>
+          <div class="card-content erd-manual-add">
+            <h2 class="section-title">Add a relationship manually</h2>
+            <div class="erd-manual-row">
+              <select id="manual-fk-from-table" class="select" onchange="populateManualFkColumns('from')" aria-label="From table"></select>
+              <select id="manual-fk-from-col" class="select" aria-label="From column"></select>
+              <span class="erd-manual-arrow" aria-hidden="true">&rarr;</span>
+              <select id="manual-fk-to-table" class="select" onchange="populateManualFkColumns('to')" aria-label="To table"></select>
+              <select id="manual-fk-to-col" class="select" aria-label="To column"></select>
+              <button class="btn btn-secondary btn-sm" onclick="addManualRelationship()">Add</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= Modals ================= -->
+  <div id="signin-required-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <div class="modal-icon"><i class="ph ph-sparkle" aria-hidden="true"></i></div>
+      <h2 class="modal-title" id="signin-required-title">Sign in to continue</h2>
+      <p class="modal-body" id="signin-required-body">This is a free account feature.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeSigninRequiredModal()">Not now</button>
+        <button class="btn btn-tertiary" onclick="signInFromRequiredModal('signin')">Sign in</button>
+        <button class="btn btn-primary" onclick="signInFromRequiredModal('signup')">Create account</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="account-modal" class="modal-overlay" aria-label="Sign in or create an account" hidden>
+    <div class="modal account-modal">
+      <aside class="account-pitch">
+        <h2 class="account-pitch-title">With a free account, you can</h2>
+        <ul class="account-perks">
+          <li>
+            <i class="ph ph-cloud-check" aria-hidden="true"></i>
+            <div><strong>Save your dashboards</strong><span>Pick up any dashboard on another device.</span></div>
+          </li>
+          <li>
+            <i class="ph ph-sparkle" aria-hidden="true"></i>
+            <div><strong>Use the AI dashboard assistant</strong><span>Ask for a chart in plain English and add it as a tile.</span></div>
+          </li>
+          <li>
+            <i class="ph ph-export" aria-hidden="true"></i>
+            <div><strong>Export to Power BI or Tableau</strong><span>Download your data, typed and ready to import.</span></div>
+          </li>
+        </ul>
+      </aside>
+
+      <div class="account-main">
+        <button type="button" class="btn btn-icon account-close" onclick="closeAccountModal()" aria-label="Close">
+          <i class="ph ph-x" aria-hidden="true"></i>
+        </button>
+
+        <div id="auth-fields-step" class="account-view">
+          <div class="account-tabs" role="tablist" aria-label="Sign in or create an account">
+            <button type="button" class="account-tab is-active" id="auth-tab-signin" role="tab" aria-selected="true" onclick="setAuthPanelMode('signin')">Sign in</button>
+            <button type="button" class="account-tab" id="auth-tab-signup" role="tab" aria-selected="false" onclick="setAuthPanelMode('signup')">Sign up</button>
+          </div>
+          <h2 class="account-title" id="account-title">Welcome back</h2>
+          <p class="account-sub" id="account-sub">Sign in to save dashboards, use the AI assistant, and export to Power BI or Tableau.</p>
+          <form class="account-form" onsubmit="event.preventDefault(); authPanelSubmit();" novalidate>
+            <div class="account-field">
+              <label for="auth-email">Email</label>
+              <input type="email" id="auth-email" class="text-input account-input" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <div class="account-field">
+              <div class="account-label-row">
+                <label for="auth-password">Password</label>
+                <a href="#" id="auth-forgot-link" class="account-link-quiet" onclick="showForgotPassword(); return false;">Forgot password?</a>
+              </div>
+              <div class="password-field">
+                <input type="password" id="auth-password" class="text-input account-input" autocomplete="current-password" aria-describedby="auth-password-help" required>
+                <button type="button" class="password-toggle-btn" onclick="togglePasswordField('auth-password', this)" aria-label="Show password">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <line class="password-toggle-slash" x1="2" y1="2" x2="22" y2="22"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="account-help" id="auth-password-help" hidden>At least 8 characters.</p>
+            </div>
+            <button type="submit" class="btn btn-primary account-submit" id="auth-panel-submit-btn">Sign in</button>
+            <div id="auth-message" class="account-message" role="status" aria-live="polite"></div>
+          </form>
+          <p class="account-switch">
+            <span id="auth-switch-text">New to Synth-BI?</span>
+            <a href="#" id="auth-switch-link" onclick="setAuthPanelMode(authPanelModeOpposite()); return false;">Create an account</a>
+          </p>
+        </div>
+
+        <div id="auth-confirm-step" class="account-view" hidden>
+          <div class="account-view-icon"><i class="ph ph-envelope-simple" aria-hidden="true"></i></div>
+          <h2 class="account-title">Check your email</h2>
+          <p class="account-sub" id="auth-confirm-copy"></p>
+          <form class="account-form" onsubmit="event.preventDefault(); submitAuthConfirmCode();" novalidate>
+            <div class="account-field">
+              <label for="auth-confirm-code">Confirmation code</label>
+              <input type="text" id="auth-confirm-code" class="text-input account-input account-input-code" inputmode="numeric" autocomplete="one-time-code" required>
+            </div>
+            <button type="submit" class="btn btn-primary account-submit" id="auth-confirm-submit-btn">Confirm email</button>
+            <div id="auth-confirm-message" class="account-message" role="status" aria-live="polite"></div>
+          </form>
+          <div class="account-links">
+            <a href="#" id="auth-confirm-resend-link" onclick="resendAuthConfirmCode(); return false;">Resend code</a>
+            <a href="#" onclick="cancelAuthConfirmStep(); return false;">Use a different email</a>
+          </div>
+        </div>
+
+        <div id="forgot-step-request" class="account-view" hidden>
+          <div class="account-view-icon"><i class="ph ph-key" aria-hidden="true"></i></div>
+          <h2 class="account-title">Reset your password</h2>
+          <p class="account-sub">Enter your account email and we'll send you a link to set a new password.</p>
+          <form class="account-form" onsubmit="event.preventDefault(); submitForgotPasswordRequest();" novalidate>
+            <div class="account-field">
+              <label for="forgot-email">Email</label>
+              <input type="email" id="forgot-email" class="text-input account-input" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary account-submit" id="forgot-request-submit-btn">Send reset link</button>
+            <div id="forgot-request-message" class="account-message" role="status" aria-live="polite"></div>
+          </form>
+          <div class="account-links">
+            <a href="#" onclick="showAccountView('fields'); setAuthPanelMode('signin'); return false;">&larr; Back to sign in</a>
+          </div>
+        </div>
+
+        <div id="forgot-step-reset" class="account-view" hidden>
+          <div class="account-view-icon"><i class="ph ph-key" aria-hidden="true"></i></div>
+          <h2 class="account-title">Choose a new password</h2>
+          <p class="account-sub">Enter a new password for your account.</p>
+          <form class="account-form" onsubmit="event.preventDefault(); submitForgotPasswordReset();" novalidate>
+            <div class="account-field">
+              <label for="forgot-new-password">New password</label>
+              <div class="password-field">
+                <input type="password" id="forgot-new-password" class="text-input account-input" autocomplete="new-password" aria-describedby="forgot-new-password-help" required>
+                <button type="button" class="password-toggle-btn" onclick="togglePasswordField('forgot-new-password', this)" aria-label="Show password">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                    <line class="password-toggle-slash" x1="2" y1="2" x2="22" y2="22"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="account-help" id="forgot-new-password-help">At least 8 characters.</p>
+            </div>
+            <button type="submit" class="btn btn-primary account-submit">Set new password</button>
+            <div id="forgot-reset-message" class="account-message" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <div class="modal-header">
+        <h2 class="modal-title">Account</h2>
+        <button class="btn btn-icon" onclick="closeSettingsPanel()" aria-label="Close"><i class="ph ph-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="settings-row">
+        <span class="settings-label">Signed in as</span>
+        <span id="settings-email"></span>
+        <span id="settings-member-since" class="file-info"></span>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-tertiary" onclick="signOutUser()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-table-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <div class="modal-icon modal-icon-negative"><i class="ph ph-warning" aria-hidden="true"></i></div>
+      <h2 class="modal-title">Delete <span id="delete-table-name"></span>?</h2>
+      <p class="modal-body" id="delete-table-body">This can't be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteTableModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteTableSubmit()">Delete table</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="relationship-type-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <h2 class="modal-title">Set relationship type</h2>
+      <p class="modal-body mono" id="relationship-type-path"></p>
+      <div class="rel-type-options">
+        <button class="rel-type-btn" onclick="chooseRelationshipType('1:1')"><span class="rel-type-symbol">1:1</span><span class="rel-type-desc">One to one</span></button>
+        <button class="rel-type-btn" onclick="chooseRelationshipType('1:M')"><span class="rel-type-symbol">1:M</span><span class="rel-type-desc">One to many</span></button>
+        <button class="rel-type-btn" onclick="chooseRelationshipType('M:M')"><span class="rel-type-symbol">M:M</span><span class="rel-type-desc">Many to many</span></button>
+        <button class="rel-type-btn" onclick="chooseRelationshipType('1:0')"><span class="rel-type-symbol">1:0</span><span class="rel-type-desc">One to optional</span></button>
+        <button class="rel-type-btn" onclick="chooseRelationshipType('0:M')"><span class="rel-type-symbol">0:M</span><span class="rel-type-desc">Optional to many</span></button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeRelationshipTypeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-modal" class="modal-overlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">How Synth-BI works</h2>
+        <button class="btn btn-icon" onclick="closeHelpPanel()" aria-label="Close"><i class="ph ph-x" aria-hidden="true"></i></button>
+      </div>
+      <div class="help-sections">
+        <section>
+          <h3>Your data stays in this tab</h3>
+          <p>Every file loads into a SQLite database running inside this browser tab. Nothing is sent anywhere unless you sign in and choose to save or use the AI assistant — and even then the assistant only ever sees column names and types, never your rows.</p>
+        </section>
+        <section>
+          <h3>Tables</h3>
+          <p>Each CSV or JSON file becomes one table; each sheet of an Excel workbook becomes its own table. Click a table chip to browse it in <strong>Table View</strong>, or the pencil to rename it (tiles that use it follow the rename). <strong>Add table</strong> adds more files to this dashboard; choosing a new file from the home page starts a fresh one.</p>
+        </section>
+        <section>
+          <h3>Building tiles</h3>
+          <p><strong>Add tile</strong> opens the tile editor. <strong>Visual</strong> mode builds the query for you from a table, a group-by column, and a measure — the SQL it writes is always shown underneath. <strong>SQL</strong> mode lets you write the query yourself. Either way, pick a chart type and add it to the dashboard. Drag a tile by its title bar to move it, and from its corner to resize it.</p>
+        </section>
+        <section>
+          <h3>Relationships</h3>
+          <p>With two or more tables, the <strong>Relationships</strong> tab suggests how they connect (like <code>orders.customer_id → customers.id</code>). Confirm the real ones; the AI assistant uses them as join hints.</p>
+        </section>
+        <section>
+          <h3>Lite vs. Normal Mode</h3>
+          <p>Without an account, everything above works. A free account adds the AI assistant, saving dashboards across devices, and exporting to Power BI or Tableau.</p>
+        </section>
+      </div>
+    </div>
   </div>
 
   <!-- Shared globals — load order matters, state.js declares them first (see state.js) -->
@@ -42,7 +422,7 @@
 
   <!-- Dashboard island — built from /dashboard, output lands in /dashboard-dist
        (see dashboard/vite.config.js). Stable filename, no manifest needed. -->
-  <script type="module" src="/dashboard-dist/dashboard.js"></script>
   <link rel="stylesheet" href="/dashboard-dist/dashboard.css">
+  <script type="module" src="/dashboard-dist/dashboard.js"></script>
 </body>
 </html>

@@ -1,14 +1,55 @@
 // shared/chart-themes.js — the three chart themes chart-engine.js can
 // render against, keyed to state.js's `previewMode` ('synth' | 'powerbi' |
-// 'tableau'). Each theme supplies { surface, text, text2, grid, axis, series }
-// — the same shape synth-sql's chartTheme() already returns for light/dark,
-// extended with two new entries instead of just two modes of one theme.
+// 'tableau'). Each theme supplies { surface, text, text2, grid, axis,
+// series, fontFamily } — the same shape synth-sql's chartTheme() already
+// returned for light/dark, extended with two new entries instead of just two
+// modes of one theme.
 //
 // 'synth' reads its palette from tokens.css's --chart-series-* custom
-// properties (see tokens.css). 'powerbi' and 'tableau' are new palettes to
-// design — approximate each tool's actual default report-canvas look
-// (fonts, panel chrome, series colors) closely enough to read as "this is
-// roughly what it'll look like there," per initial-build.md §8a's stated
-// bar (structural/layout preview, not a pixel-identical clone).
-//
-// STUB — design the powerbi/tableau palettes once §8a's visual design pass happens.
+// properties (see tokens.css) when a document is available, falling back to
+// the same literal values otherwise (e.g. if this module is ever used
+// outside a browser). 'powerbi' and 'tableau' are sequenced into v1.1 with
+// the destination-preview re-skin (initial-build.md §8a/§10): until their
+// visual design pass happens they resolve to the Synth theme, so the
+// previewMode plumbing already works end to end and only these two entries
+// (plus dashboard/src/themes/*.css) need filling in.
+
+const SYNTH_FALLBACK = {
+  surface: '#ffffff',
+  text: '#0e0f0c',   // --color-ink
+  text2: '#454745',  // --color-body
+  grid: '#eef0ec',
+  axis: '#c9cec5',
+  series: ['#eb6834', '#2a78d6', '#1baf7a', '#4a3aa7', '#eda100', '#e87ba4'],
+  fontFamily: "Inter, system-ui, -apple-system, sans-serif",
+};
+
+function readCssVar(css, name) {
+  return css ? (css.getPropertyValue(name) || '').trim() : '';
+}
+
+function synthTheme() {
+  const css = typeof document !== 'undefined' && typeof getComputedStyle === 'function'
+    ? getComputedStyle(document.documentElement)
+    : null;
+  const series = SYNTH_FALLBACK.series.map((fallback, i) => readCssVar(css, `--chart-series-${i + 1}`) || fallback);
+  return {
+    ...SYNTH_FALLBACK,
+    text: readCssVar(css, '--color-ink') || SYNTH_FALLBACK.text,
+    text2: readCssVar(css, '--color-body') || SYNTH_FALLBACK.text2,
+    series,
+  };
+}
+
+const THEMES = {
+  synth: synthTheme,
+  // v1.1 — design pass pending (initial-build.md §8a).
+  powerbi: synthTheme,
+  tableau: synthTheme,
+};
+
+export const PREVIEW_MODES = ['synth', 'powerbi', 'tableau'];
+
+export function getChartTheme(mode = 'synth') {
+  return (THEMES[mode] || THEMES.synth)();
+}

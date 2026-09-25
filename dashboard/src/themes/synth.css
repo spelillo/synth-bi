@@ -1,3 +1,24 @@
 /* themes/synth.css — the default dashboard preview: the Wise design system
    itself (tokens.css), applied directly with no re-skin. This is what the
-   dashboard looks like before "Preview as: Power BI / Tableau" is touched. */
+   dashboard looks like before "Preview as: Power BI / Tableau" is touched.
+
+   Everything tile-chrome-shaped in dashboard.css reads one of these
+   variables instead of a token directly. powerbi.css / tableau.css (v1.1)
+   re-skin the canvas by redefining this same set under
+   .dash[data-preview="powerbi"] / [data-preview="tableau"] — chart colors
+   come from shared/chart-themes.js, so no tile markup changes per theme. */
+
+.dash {
+  --dash-bg: var(--color-canvas-soft);
+  --tile-bg: var(--color-canvas);
+  --tile-radius: var(--radius-xl);
+  --tile-border: transparent;
+  --tile-shadow: none;
+  --tile-header-bg: transparent;
+  --tile-header-border: transparent;
+  --tile-title-font: var(--font-body);
+  --tile-title-size: 15px;
+  --tile-title-weight: 600;
+  --tile-title-color: var(--color-ink);
+  --tile-padding: var(--space-lg);
+}

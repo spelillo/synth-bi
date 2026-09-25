@@ -15,14 +15,26 @@ let aiMode = 'ask';     // 'ask' | 'agent' — initial-build.md §6
 let dataLoaded = false;
 
 // ---- Multi-table workspace state (ported from synth-sql) ----
-let tables = [];              // [{ name, fileName, sourceType: 'csv'|'json'|'xlsx', sheetName, rowCount, columns }]
+// `columns` is the plain list of column names (what synth-sql's
+// relationship detection and schema text already expect). `columnInfo` is
+// new: a per-column profile computed once at load time — { name, kind:
+// 'numeric'|'date'|'text', integer, isoDate } — used by the tile editor's
+// Visual mode, the AI system prompt, and the Tableau .tds field types.
+let tables = [];              // [{ name, fileName, sourceType: 'csv'|'json'|'xlsx', sheetName, rowCount, columns, columnInfo }]
 let activeTableName = null;
 
 // ---- Dashboard state (new) ----
 // One entry per tile on the canvas. This array *is* the workspace's
 // dashboard — the React island renders from it via bridge.js and never owns
 // a second copy of it. Each tile is independently re-runnable against `db`.
-let dashboardTiles = [];      // [{ id, sql, chartSpec, position: { x, y, w, h } }]
+//
+// chartSpec stores columns by *name*, not index — { type, title, category:
+// <name|null>, values: [<name>], xAxisTitle, yAxisTitle } — so a tile keeps
+// pointing at the right column even if its SQL is edited to reorder them
+// (shared/chart-engine.js resolveChartSpec() maps names back to indexes at
+// render time). `source` is optional editor metadata so a Visual-mode tile
+// reopens in Visual mode with its fields intact; it never affects rendering.
+let dashboardTiles = [];      // [{ id, sql, chartSpec, position: { x, y, w, h }, source? }]
 let previewMode = 'synth';    // 'synth' | 'powerbi' | 'tableau' — initial-build.md §8a
 
 let currentWorkspaceId = null;
@@ -31,3 +43,4 @@ let chatHistory = [];
 
 // Row cap applies flat, regardless of Lite/Normal Mode — initial-build.md §5.
 const MAX_ROWS_PER_TABLE = 500_000;
+const MAX_TABLES_PER_WORKSPACE = 10;

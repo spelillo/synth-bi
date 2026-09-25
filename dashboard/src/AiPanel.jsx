@@ -10,9 +10,56 @@
 //
 // Disabled entirely in Lite Mode (no sign-in) — see bridge.js's
 // getCurrentUser()/requireSignIn().
-//
-// STUB
 
-export default function AiPanel(_props) {
-  return null;
+import { bridge, useAiMode, useCurrentUser } from './bridge.js';
+import Segmented from './Segmented.jsx';
+
+export default function AiPanel({ onCollapse }) {
+  const user = useCurrentUser();
+  const aiMode = useAiMode();
+
+  return (
+    <aside className="ai-panel" aria-label="AI dashboard assistant">
+      <header className="ai-panel-header">
+        <div className="ai-panel-title">
+          <i className="ph ph-sparkle" aria-hidden="true" />
+          <h2>AI assistant</h2>
+        </div>
+        <Segmented
+          size="sm"
+          label="Assistant mode"
+          value={aiMode}
+          onChange={mode => bridge.setAiMode(mode)}
+          options={[
+            { id: 'ask', label: 'Ask', disabled: !user },
+            { id: 'agent', label: 'Agent', disabled: true, title: 'Agent Mode is coming soon: the assistant will build tiles for you directly.' },
+          ]}
+        />
+        {onCollapse && (
+          <button type="button" className="tile-icon-btn" onClick={onCollapse} aria-label="Hide assistant" title="Hide assistant">
+            <i className="ph ph-caret-double-right" aria-hidden="true" />
+          </button>
+        )}
+      </header>
+
+      {!user ? (
+        <div className="ai-locked">
+          <div className="ai-locked-card">
+            <i className="ph ph-lock-simple" aria-hidden="true" />
+            <p className="ai-locked-title">Sign in to use the AI assistant</p>
+            <p className="ai-locked-body">Ask for a chart in plain English (“revenue by month”) and add it to the dashboard in one click. It only ever sees column names and types, never your rows.</p>
+            <div className="ai-locked-actions">
+              <button type="button" className="btn btn-tertiary btn-sm" onClick={() => window.openAccountModal && window.openAccountModal('signin')}>Sign in</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => window.openAccountModal && window.openAccountModal('signup')}>Create a free account</button>
+            </div>
+          </div>
+          <p className="ai-locked-foot">Building tiles by hand works without an account.</p>
+        </div>
+      ) : (
+        <div className="ai-locked">
+          <p className="ai-locked-foot">The assistant is being wired up in the next build step.</p>
+        </div>
+      )}
+    </aside>
+  );
 }
