@@ -1,13 +1,33 @@
 {
   "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/welcome", "destination": "/welcome.html" },
-    { "source": "/guides", "destination": "/guides.html" },
-    { "source": "/terms", "destination": "/terms.html" },
-    { "source": "/privacy", "destination": "/privacy.html" }
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/welcome",
+      "destination": "/welcome.html"
+    },
+    {
+      "source": "/guides",
+      "destination": "/guides.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    }
   ],
   "redirects": [
-    { "source": "/about", "destination": "/welcome", "permanent": true }
+    {
+      "source": "/about",
+      "destination": "/welcome",
+      "permanent": true
+    }
   ]
 }

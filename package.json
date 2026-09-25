@@ -2,10 +2,10 @@
   "name": "synth-bi",
   "version": "0.1.0",
   "private": true,
-  "description": "AI-assisted dashboard builder for CSV, JSON, and Excel files — export to Power BI and Tableau",
+  "description": "AI-assisted dashboard builder for CSV, JSON, and Excel files \u2014 export to Power BI and Tableau",
   "scripts": {
     "dev": "vercel dev",
-    "build": "npm --prefix dashboard install && npm --prefix dashboard run build"
+    "build": "npm --prefix dashboard install && npm --prefix dashboard run build && node scripts/build-public.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2"
