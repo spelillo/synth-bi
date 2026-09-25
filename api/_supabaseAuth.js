@@ -18,12 +18,14 @@ import { createClient } from '@supabase/supabase-js';
 // Public by design (same value auth.js ships to every browser) — only used
 // as a fallback when SUPABASE_ANON_KEY isn't set in the environment.
 const PUBLISHABLE_KEY_FALLBACK = 'sb_publishable_KSbBry-RR0L4QnSUT5k8Kg_kLF3PkjX';
+// Also public (auth.js ships it) — used when SUPABASE_URL isn't set.
+export const SUPABASE_URL_FALLBACK = 'https://fvjlqcrjfbxgqjbbqdaa.supabase.co';
 
 let cachedClient;
 
 function getVerifierClient() {
   if (cachedClient !== undefined) return cachedClient;
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || PUBLISHABLE_KEY_FALLBACK;
   cachedClient = url ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
   return cachedClient;

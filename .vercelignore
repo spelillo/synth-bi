@@ -1,0 +1,5 @@
+# Not part of the deployed site: design/working docs and Supabase CLI config.
+*.md
+!vendor/README.md
+supabase/
+.claude/

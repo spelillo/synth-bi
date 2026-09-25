@@ -13,13 +13,14 @@
 // api/chat.js.
 
 import { createClient } from '@supabase/supabase-js';
+import { SUPABASE_URL_FALLBACK } from './_supabaseAuth.js';
 
 let cachedClient;
 
 function getSupabaseAdmin() {
   if (cachedClient !== undefined) return cachedClient;
-  cachedClient = (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY)
-    ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+  cachedClient = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ? createClient(process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
     : null;
   return cachedClient;
 }
