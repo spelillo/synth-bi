@@ -121,7 +121,7 @@
   <div id="app-view" hidden>
     <div class="app-toolbar">
       <div class="app-toolbar-left">
-        <h1 class="workspace-name" id="workspace-name">Untitled dashboard</h1>
+        <h1 class="workspace-name" id="workspace-name" title="Click to rename" tabindex="0" role="button" onclick="startRenameCurrentDashboard()" onkeydown="if(event.key==='Enter'&&!this.isContentEditable){event.preventDefault();startRenameCurrentDashboard();}">Untitled dashboard</h1>
         <div id="file-info" class="file-info"></div>
       </div>
       <div class="app-toolbar-right">
@@ -404,6 +404,30 @@
           <h3>Lite vs. Normal Mode</h3>
           <p>Without an account, everything above works. A free account adds the AI assistant, saving dashboards across devices, and exporting to Power BI or Tableau.</p>
         </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-workspace-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <div class="modal-icon modal-icon-negative"><i class="ph ph-trash" aria-hidden="true"></i></div>
+      <h2 class="modal-title">Delete <span id="delete-workspace-name"></span>?</h2>
+      <p class="modal-body">This deletes the saved dashboard, its tiles, and its uploaded tables from your account. It can't be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteWorkspaceModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDeleteWorkspace()">Delete dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="switch-workspace-modal" class="modal-overlay" hidden>
+    <div class="modal modal-small">
+      <div class="modal-icon"><i class="ph ph-arrows-left-right" aria-hidden="true"></i></div>
+      <h2 class="modal-title">Open another dashboard?</h2>
+      <p class="modal-body">The dashboard you have open has changes that aren't saved to your account. Opening another one replaces it.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeSwitchWorkspaceModal()">Cancel</button>
+        <button class="btn btn-tertiary" onclick="confirmSwitchWorkspace()">Open anyway</button>
       </div>
     </div>
   </div>

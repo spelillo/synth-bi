@@ -4,9 +4,125 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Guides — Synth-BI</title>
+  <meta name="description" content="How to build a dashboard, import Excel workbooks, use the AI assistant, customize colors and layout, and export to Power BI or Tableau with Synth-BI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
-  <!-- STUB — index of how-to guides (dashboard building, Excel import, exporting to Power BI/Tableau). -->
+  <!-- Index of how-to guides: dashboard building, Excel import, the AI assistant, customization, exporting to Power BI/Tableau. -->
 </head>
-<body></body>
+<body>
+  <header class="mk-nav">
+    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <nav class="mk-nav-links" aria-label="Main">
+      <a href="/welcome">About</a>
+      <a href="/guides" aria-current="page">Guides</a>
+      <a href="/?auth=signin">Sign in</a>
+      <a href="/" class="btn btn-tertiary btn-sm">Open Synth-BI</a>
+    </nav>
+  </header>
+
+  <main class="mk-main">
+    <section class="mk-hero">
+      <h1 class="mk-display">Guides</h1>
+      <p class="mk-lead">Short, practical walkthroughs for everything Synth-BI does.</p>
+    </section>
+    <div class="mk-guides">
+      <nav class="mk-toc" aria-label="Guides">
+        <a href="#first-dashboard">Build your first dashboard</a>
+        <a href="#excel">Import Excel workbooks</a>
+        <a href="#assistant">Use the AI assistant</a>
+        <a href="#customize">Colors, text, and layout</a>
+        <a href="#power-bi">Export to Power BI</a>
+        <a href="#tableau">Export to Tableau</a>
+        <a href="#saving">Save and reopen dashboards</a>
+      </nav>
+      <div>
+        <article class="mk-article" id="first-dashboard">
+          <h2>Build your first dashboard</h2>
+          <ol>
+            <li>On the home page, drop a CSV, JSON, or Excel file (or click <strong>Choose a file</strong>).</li>
+            <li>Click <strong>Add your first tile</strong>. In the <strong>Data</strong> tab, pick what to <strong>Group by</strong> and a <strong>Measure</strong>, like Sum of Revenue. Date columns can be grouped by year, quarter, month, or day.</li>
+            <li>Optionally <strong>Split by</strong> a second column to get one series per value, or add a <strong>Filter</strong>. The SQL for your picks is always shown underneath.</li>
+            <li>Open the <strong>Visual</strong> tab to choose a chart type, then <strong>Format</strong> for colors and titles. The preview updates as you go.</li>
+            <li>Click <strong>Add to dashboard</strong>. Drag tiles by their title bar; resize them from the right edge, bottom edge, or corner.</li>
+          </ol>
+          <p class="mk-tip">Prefer SQL? Switch the Data tab to <strong>SQL</strong>. Tiles are read-only queries (<code>SELECT</code> or <code>WITH</code>), so a tile can never change your data.</p>
+        </article>
+
+        <article class="mk-article" id="excel">
+          <h2>Import Excel workbooks</h2>
+          <p>Upload an <code>.xlsx</code> file directly. Every sheet with data becomes its own table: a one-sheet workbook is named after the file, and multi-sheet workbooks use the sheet names. Empty sheets are skipped.</p>
+          <ul>
+            <li><strong>Formulas:</strong> Synth-BI reads each cell's calculated value, the same thing you'd get copying and pasting values.</li>
+            <li><strong>Dates:</strong> stored as <code>yyyy-mm-dd</code>, so they sort correctly and can be grouped by month or year.</li>
+            <li><strong>Headers:</strong> the first non-empty row is the header row. Spaces in column names become underscores so they work in SQL.</li>
+          </ul>
+          <p>Several related sheets (say <em>Orders</em> and <em>Customers</em>)? Open the <strong>Relationships</strong> tab to confirm how they join, and the AI assistant will use those joins.</p>
+        </article>
+
+        <article class="mk-article" id="assistant">
+          <h2>Use the AI assistant</h2>
+          <p>Sign in (it's free) to turn on the assistant in the panel beside your dashboard. It has two modes:</p>
+          <h3>Ask</h3>
+          <p>Ask about your data ("which region sold the most last quarter?") or how to do something ("how do I make a stacked chart?"). For data questions it writes a query that runs in your browser and shows the result under its answer. The assistant never sees the result. Click <strong>Make a tile</strong> to turn any query into a chart.</p>
+          <h3>Build</h3>
+          <p>Describe what you want: "revenue by month as a smooth line, split by region, in blue". The draft opens in the tile editor as a preview, where you can change anything before adding it. You can also ask it to change an existing tile ("make the treemap a doughnut on a dark background") or add a title text box.</p>
+          <p class="mk-tip">The assistant only ever sees your column names and types, never your rows.</p>
+        </article>
+
+        <article class="mk-article" id="customize">
+          <h2>Colors, text, and layout</h2>
+          <ul>
+            <li><strong>Colors:</strong> open a tile's <strong>Format</strong> tab (or the tile menu → Colors &amp; format). Pick a palette, then click any series or slice to give it its own color. Charts default to Synth green.</li>
+            <li><strong>Chart options:</strong> data labels, legend, gridlines, smooth lines, and number formats (currency, percent, compact) are in the same tab.</li>
+            <li><strong>Tile look:</strong> title, subtitle, title size and alignment, background color, and an outline.</li>
+            <li><strong>Text boxes:</strong> click <strong>Text</strong> in the dashboard header. Double-click a box to type; lines starting with <code>#</code> become headings and <code>-</code> become bullets.</li>
+            <li><strong>Canvas:</strong> <strong>Style</strong> sets the background, free placement (tiles stay where you drop them, like a slide) vs. snap-up, spacing, and corner style.</li>
+          </ul>
+        </article>
+
+        <article class="mk-article" id="power-bi">
+          <h2>Export to Power BI</h2>
+          <ol>
+            <li>Click <strong>Export</strong> in the dashboard header, keep <strong>Power BI</strong> checked, and download the .zip.</li>
+            <li>In Power BI Desktop: <strong>Home → Get Data → Excel workbook</strong>, then pick one of the <code>.xlsx</code> files.</li>
+            <li>In the Navigator, tick the <strong>Table</strong> (not the sheet) and click <strong>Load</strong>. Numbers and dates arrive already typed.</li>
+            <li>Repeat for each table, relate them in Model view if needed, and rebuild each visual using <code>tiles.txt</code>, which lists every tile's chart type, fields, and SQL.</li>
+          </ol>
+        </article>
+
+        <article class="mk-article" id="tableau">
+          <h2>Export to Tableau</h2>
+          <ol>
+            <li>Click <strong>Export</strong>, keep <strong>Tableau</strong> checked, and download the .zip. Unzip it.</li>
+            <li>Keep each <code>.tds</code> file in the same folder as its <code>.xlsx</code>.</li>
+            <li>Double-click a <code>.tds</code>. Tableau opens connected to the data, with friendly field names, types, and measures vs. dimensions already set. If it asks where the file is, point it at the matching <code>.xlsx</code>.</li>
+            <li>Rebuild each visual on a worksheet using <code>tiles.txt</code>, and use <code>dashboard.png</code> as your layout reference.</li>
+          </ol>
+        </article>
+
+        <article class="mk-article" id="saving">
+          <h2>Save and reopen dashboards</h2>
+          <p>Signed in, click <strong>Save to cloud</strong> in the dashboard toolbar. After the first save, tile, color, and layout changes save automatically; adding, renaming, or deleting a table asks you to save again. Saved dashboards appear under <strong>Your dashboards</strong> on the home page, with a preview, and reopen with their tables, tiles, relationships, and assistant conversation. Click the dashboard's name in the toolbar to rename it.</p>
+        </article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <span class="mk-brand-word">synth<span class="mk-brand-bi">BI</span></span>
+      <nav aria-label="Footer">
+        <a href="/welcome">About</a>
+        <a href="/guides">Guides</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+      </nav>
+      <span class="mk-footer-copy">&copy; 2026 Synth. All rights reserved.</span>
+    </div>
+  </footer>
+</body>
 </html>

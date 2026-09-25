@@ -62,9 +62,12 @@ function updateCloudButtons() {
   if (!btn) return;
   btn.hidden = !(currentUser && tables.length > 0);
   if (btn.hidden) return;
-  btn.disabled = false;
   btn.classList.toggle('is-synced', workspaceSynced);
-  btn.textContent = workspaceSynced ? 'Saved' : 'Save to cloud';
+  btn.innerHTML = workspaceSynced
+    ? '<i class="ph ph-cloud-check" aria-hidden="true"></i> Saved'
+    : currentWorkspaceId && !tablesDirty
+      ? '<i class="ph ph-cloud-arrow-up" aria-hidden="true"></i> Saving soon…'
+      : '<i class="ph ph-cloud-arrow-up" aria-hidden="true"></i> Save to cloud';
 }
 
 // Called by bridge.js setTiles() whenever the island changes the dashboard.
@@ -387,6 +390,8 @@ window.uploadFiles = async function(event) {
     dashboardTiles = [];
     rejectedRelationshipKeys = new Set();
     relationships = [];
+    tablesDirty = true;
+    notifyChatRestored();
 
     setFileInfo(loaded.length === 1
       ? `${loaded[0].fileName} (${formatFileSize(files[0])}, ${loaded[0].rowCount.toLocaleString()} rows) → table "${loaded[0].name}"`
@@ -447,7 +452,7 @@ window.addTables = async function(event) {
 
     activeTableName = loaded[loaded.length - 1].name;
     afterWorkspaceTablesChanged();
-    markWorkspaceDirty();
+    markTablesDirty();
     completeLoadProgress();
   } catch (err) {
     hideLoadingOverlay();
@@ -474,7 +479,7 @@ function setFileInfo(text, isError) {
 // ---- Table chip bar ----
 
 function getWorkspaceDisplayName() {
-  return currentWorkspaceName || (tables[0] && tables[0].fileName) || 'Untitled dashboard';
+  return currentWorkspaceName || (tables[0] && tables[0].fileName ? tables[0].fileName.replace(/\.[^.]+$/, '') : '') || 'Untitled dashboard';
 }
 
 function renderTableChips() {
@@ -600,7 +605,7 @@ function renameTable(oldName, proposedName) {
 
   // Tiles reference tables by name too, inside their SQL.
   if (dashboardTiles.length) {
-    dashboardTiles = dashboardTiles.map(tile => ({
+    dashboardTiles = dashboardTiles.map(tile => (tile.kind === 'text' || !tile.sql ? tile : {
       ...tile,
       sql: renameTableInSql(tile.sql, oldName, finalName),
       source: tile.source && tile.source.visual && tile.source.visual.table === oldName
@@ -616,7 +621,7 @@ function renameTable(oldName, proposedName) {
   recomputeRelationships();
   populateManualFkTableSelects();
   notifySchemaChange();
-  markWorkspaceDirty();
+  markTablesDirty();
 }
 
 // ---- Delete table (chip's X button) ----
@@ -626,7 +631,7 @@ function renameTable(oldName, proposedName) {
 let tablePendingDelete = null;
 
 function tilesUsingTable(name) {
-  return dashboardTiles.filter(t => sqlReferencesTable(t.sql, name));
+  return dashboardTiles.filter(t => t.sql && sqlReferencesTable(t.sql, name));
 }
 
 window.requestDeleteTable = function(event, name) {
@@ -659,7 +664,7 @@ window.confirmDeleteTableSubmit = function() {
 
   afterWorkspaceTablesChanged();
   notifyTilesChange(); // tiles re-run and surface the missing table
-  markWorkspaceDirty();
+  markTablesDirty();
 };
 
 // ---- Heuristic foreign-key matching + ERD (Relationships tab) ----
@@ -748,7 +753,7 @@ function renderRelationshipsTabVisibility() {
 function relationshipsChanged() {
   renderERD();
   renderRelationshipList();
-  markWorkspaceDirty();
+  onDashboardTilesChanged(); // relationships are saved on the dashboard row
   notifySchemaChange();
 }
 
@@ -1119,6 +1124,424 @@ async function sizeLoadProgress(files) {
 function revealApp() {
   setActiveView('app');
 }
+
+// ---- Saved dashboards (Supabase — see supabase/migrations) ----
+// Mirrors synth-sql's saveCurrentCSV / loadCloudWorkspace / home workspace
+// list, reshaped for dashboards. One `dashboards` row holds tiles, canvas
+// settings, confirmed relationships, and chat history; each table's rows
+// go to Storage as gzipped JSON (lossless, unlike a CSV round trip) with a
+// `dashboard_tables` metadata row. The first save is explicit ("Save to
+// cloud"); after that, tile/style/chat edits autosave (debounced) while
+// table changes (add/rename/delete) wait for the next explicit save, since
+// they re-upload data.
+const DATA_BUCKET = 'dashboard-data';
+const AUTOSAVE_DELAY_MS = 1500;
+let tablesDirty = true;
+let autosaveTimer = null;
+let saveInFlight = null;
+
+function markTablesDirty() {
+  tablesDirty = true;
+  markWorkspaceDirty();
+}
+
+async function gzipJsonBlob(obj) {
+  const json = JSON.stringify(obj);
+  if (typeof CompressionStream === 'undefined') return new Blob([json], { type: 'application/json' });
+  const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+  return new Blob([await new Response(stream).arrayBuffer()], { type: 'application/gzip' });
+}
+
+async function readJsonBlob(blob) {
+  const head = new Uint8Array(await blob.slice(0, 2).arrayBuffer());
+  if (head[0] === 0x1f && head[1] === 0x8b) {
+    const stream = blob.stream().pipeThrough(new DecompressionStream('gzip'));
+    return JSON.parse(await new Response(stream).text());
+  }
+  return JSON.parse(await blob.text());
+}
+
+async function thumbnailDataUrl() {
+  try {
+    const blob = thumbnailRenderer ? await thumbnailRenderer() : null;
+    if (!blob) return null;
+    return await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+function dashboardRowPayload() {
+  return {
+    name: getWorkspaceDisplayName().slice(0, 200),
+    tiles: dashboardTiles,
+    settings: dashboardSettings,
+    relationships: relationships.filter(r => r.confirmed).map(({ fromTable, fromColumn, toTable, toColumn, cardinality }) => ({ fromTable, fromColumn, toTable, toColumn, cardinality })),
+    chat_history: chatHistory.slice(-60).map(m => ({ role: m.role, content: String(m.content).slice(0, 12000), mode: m.mode || 'ask' })),
+  };
+}
+
+async function listDashboardFiles(dashboardId) {
+  const prefix = `${currentUser.id}/${dashboardId}`;
+  const { data } = await sb.storage.from(DATA_BUCKET).list(prefix, { limit: 1000 });
+  return (data || []).map(f => `${prefix}/${f.name}`);
+}
+
+async function uploadWorkspaceTables(dashboardId) {
+  // Replace wholesale (same approach as synth-sql): simpler to keep correct,
+  // and a renamed or removed table never leaves an orphaned object behind.
+  const { error: delErr } = await sb.from('dashboard_tables').delete().eq('dashboard_id', dashboardId);
+  if (delErr) throw delErr;
+  const old = await listDashboardFiles(dashboardId);
+  if (old.length) await sb.storage.from(DATA_BUCKET).remove(old);
+
+  for (const [position, t] of tables.entries()) {
+    const result = db.exec(`SELECT * FROM "${t.name}"`);
+    const rows = result.length ? result[0].values : [];
+    const blob = await gzipJsonBlob({ columns: t.columns, rows });
+    const path = `${currentUser.id}/${dashboardId}/${encodeURIComponent(t.name)}.json.gz`;
+    const { error: upErr } = await sb.storage.from(DATA_BUCKET).upload(path, blob, { upsert: true, contentType: blob.type });
+    if (upErr) throw upErr;
+    const { error: rowErr } = await sb.from('dashboard_tables').insert({
+      dashboard_id: dashboardId,
+      table_name: t.name,
+      file_name: t.fileName,
+      source_type: t.sourceType,
+      sheet_name: t.sheetName,
+      row_count: t.rowCount,
+      columns: t.columnInfo || [],
+      storage_path: path,
+      position,
+    });
+    if (rowErr) throw rowErr;
+  }
+}
+
+async function saveWorkspace({ includeTables }) {
+  const btn = document.getElementById('save-cloud-btn');
+  const payload = dashboardRowPayload();
+  const thumb = await thumbnailDataUrl();
+  if (thumb) payload.thumbnail = thumb;
+
+  let id = currentWorkspaceId;
+  if (id) {
+    const { error } = await sb.from('dashboards').update(payload).eq('id', id);
+    if (error) throw error;
+  } else {
+    const { data, error } = await sb.from('dashboards').insert(payload).select('id').single();
+    if (error) throw error;
+    id = data.id;
+    includeTables = true;
+  }
+  if (includeTables) {
+    if (btn) btn.textContent = 'Uploading tables…';
+    await uploadWorkspaceTables(id);
+    tablesDirty = false;
+  }
+  currentWorkspaceId = id;
+  currentWorkspaceName = payload.name;
+  markWorkspaceSynced();
+}
+
+window.saveWorkspaceToCloud = async function() {
+  if (!requireFeature('cloudSave') || !sb || !tables.length) return;
+  const btn = document.getElementById('save-cloud-btn');
+  clearTimeout(autosaveTimer);
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  try {
+    if (saveInFlight) await saveInFlight.catch(() => {});
+    saveInFlight = saveWorkspace({ includeTables: tablesDirty || !currentWorkspaceId });
+    await saveInFlight;
+  } catch (err) {
+    console.error('Save failed:', err);
+    setFileInfo(`Couldn't save: ${err.message || err}`, true);
+    updateCloudButtons();
+  } finally {
+    saveInFlight = null;
+    btn.disabled = false;
+    updateCloudButtons();
+  }
+};
+
+// Called (via onDashboardTilesChanged) after every tile/settings/chat
+// change. Only runs for a dashboard that's already saved and whose tables
+// haven't changed since — otherwise the Save button stays the way to save.
+function scheduleDashboardAutosave() {
+  if (!currentUser || !sb || !currentWorkspaceId || tablesDirty) return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(async () => {
+    if (!currentWorkspaceId || tablesDirty || saveInFlight) { if (saveInFlight) scheduleDashboardAutosave(); return; }
+    const btn = document.getElementById('save-cloud-btn');
+    if (btn) btn.textContent = 'Saving…';
+    try {
+      saveInFlight = saveWorkspace({ includeTables: false });
+      await saveInFlight;
+    } catch (err) {
+      console.error('Autosave failed:', err);
+      updateCloudButtons();
+    } finally {
+      saveInFlight = null;
+    }
+  }, AUTOSAVE_DELAY_MS);
+}
+
+window.loadCloudDashboard = async function(dashboardId) {
+  if (!sb || !currentUser || !SQL) return;
+  const { data: dash, error } = await sb.from('dashboards').select('*').eq('id', dashboardId).single();
+  if (error) { setHomeUploadMessage(`Couldn't open that dashboard: ${error.message}`, true); return; }
+  const { data: tableRows, error: tErr } = await sb.from('dashboard_tables').select('*').eq('dashboard_id', dashboardId).order('position');
+  if (tErr) { setHomeUploadMessage(`Couldn't open that dashboard: ${tErr.message}`, true); return; }
+
+  showLoadingOverlay();
+  try {
+    addLoadProgressUnits(Math.max(1, (tableRows || []).reduce((sum, t) => sum + (t.row_count || 0), 0)));
+    const loadedTables = [];
+    for (const t of tableRows || []) {
+      const { data: blob, error: dlErr } = await sb.storage.from(DATA_BUCKET).download(t.storage_path);
+      if (dlErr) throw dlErr;
+      loadedTables.push({ meta: t, data: await readJsonBlob(blob) });
+    }
+
+    db = new SQL.Database();
+    tables = [];
+    for (const { meta, data } of loadedTables) {
+      // Loaded under the SAVED table name — a rename made before saving has
+      // to survive the round trip (same rule as synth-sql).
+      await loadFileAsTable({ fileName: meta.file_name, sourceType: meta.source_type, sheetName: meta.sheet_name }, data.columns, data.rows.map(r => r.map(v => (v === null || v === undefined ? '' : String(v)))), meta.table_name);
+    }
+
+    activeTableName = tables.length ? tables[0].name : null;
+    dataLoaded = tables.length > 0;
+    relationships = (dash.relationships || []).map(r => ({ id: `${r.fromTable}.${r.fromColumn}|${r.toTable}.${r.toColumn}`, ...r, confirmed: true, manual: true }));
+    rejectedRelationshipKeys = new Set();
+    dashboardTiles = Array.isArray(dash.tiles) ? dash.tiles : [];
+    dashboardSettings = { ...dashboardSettings, ...(dash.settings || {}) };
+    chatHistory = Array.isArray(dash.chat_history) ? dash.chat_history : [];
+    currentWorkspaceId = dash.id;
+    currentWorkspaceName = dash.name;
+    columnStatsCache = null;
+
+    setFileInfo(`${tables.length} table${tables.length === 1 ? '' : 's'} · saved ${timeAgo(dash.updated_at)}`);
+    afterWorkspaceTablesChanged();
+    notifyTilesChange();
+    notifyDashboardSettingsChange();
+    notifyChatRestored();
+    tablesDirty = false;
+    markWorkspaceSynced();
+
+    completeLoadProgress(() => {
+      revealApp();
+      selectTab('dashboard');
+    });
+  } catch (err) {
+    hideLoadingOverlay();
+    console.error(err);
+    setHomeUploadMessage(`Couldn't open that dashboard: ${err.message || err}`, true);
+  }
+};
+
+// ---- Home view: "Your dashboards" ----
+
+function timeAgo(dateStr) {
+  const mins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
+function homeEmptyState({ icon, title, body, actions = '' }) {
+  return `
+    <div class="home-empty">
+      <i class="ph ${icon} home-empty-icon" aria-hidden="true"></i>
+      <p class="home-empty-title">${title}</p>
+      <p class="home-empty-body">${body}</p>
+      ${actions ? `<div class="home-empty-actions">${actions}</div>` : ''}
+    </div>`;
+}
+
+let homeRenderToken = 0;
+
+async function renderHomeDashboards() {
+  const body = document.getElementById('home-dashboards-body');
+  if (!body) return;
+  const token = ++homeRenderToken;
+
+  if (!currentUser || !sb) {
+    body.innerHTML = homeEmptyState({
+      icon: 'ph-squares-four',
+      title: 'Saved dashboards live here',
+      body: "Sign in to save a dashboard and pick it up on any device. You don't need an account to build one.",
+      actions: `<button type="button" class="btn btn-secondary btn-sm" onclick="openAccountModal('signin')">Sign in</button>`,
+    });
+    return;
+  }
+
+  body.innerHTML = '<div class="dash-card is-loading"></div><div class="dash-card is-loading"></div>';
+  let rows, error;
+  try {
+    ({ data: rows, error } = await sb
+      .from('dashboards')
+      .select('id, name, tiles, thumbnail, updated_at, dashboard_tables(table_name, row_count)')
+      .order('updated_at', { ascending: false }));
+  } catch (err) {
+    error = err;
+  }
+  if (token !== homeRenderToken) return;
+
+  if (error) {
+    body.innerHTML = homeEmptyState({
+      icon: 'ph-warning-circle',
+      title: "Couldn't load your dashboards",
+      body: escapeHtml(error.message || 'Check your connection and try again.'),
+      actions: `<button type="button" class="btn btn-secondary btn-sm" onclick="renderHomeDashboards()">Try again</button>`,
+    });
+    return;
+  }
+  if (!rows || !rows.length) {
+    body.innerHTML = homeEmptyState({
+      icon: 'ph-squares-four',
+      title: 'No saved dashboards yet',
+      body: 'Upload a file, build some tiles, then use Save to cloud to keep the dashboard here.',
+    });
+    return;
+  }
+
+  body.innerHTML = rows.map(d => {
+    const tileCount = (d.tiles || []).filter(t => t.kind !== 'text').length;
+    const tableCount = (d.dashboard_tables || []).length;
+    const isOpen = d.id === currentWorkspaceId && hasLoadedWorkspace();
+    const thumb = d.thumbnail && d.thumbnail.startsWith('data:image/png') ? `<img src="${escapeAttr(d.thumbnail)}" alt="">` : '<i class="ph ph-squares-four" aria-hidden="true"></i>';
+    return `
+      <article class="dash-card${isOpen ? ' is-open' : ''}" data-dashboard="${escapeAttr(d.id)}">
+        <button type="button" class="dash-card-thumb" onclick="requestOpenDashboard('${escapeAttr(d.id)}')" aria-label="Open ${escapeAttr(d.name)}">${thumb}</button>
+        <div class="dash-card-name" data-dashboard-name="${escapeAttr(d.id)}">${escapeHtml(d.name)}</div>
+        <div class="dash-card-meta">${tileCount} tile${tileCount === 1 ? '' : 's'} · ${tableCount} table${tableCount === 1 ? '' : 's'} · ${isOpen ? 'open now' : `updated ${timeAgo(d.updated_at)}`}</div>
+        <div class="dash-card-actions">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="requestOpenDashboard('${escapeAttr(d.id)}')">${isOpen ? 'Back to it' : 'Open'}</button>
+          <button type="button" class="btn btn-icon btn-icon-sm" title="Rename" aria-label="Rename ${escapeAttr(d.name)}" onclick="startRenameDashboard('${escapeAttr(d.id)}')"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button>
+          <button type="button" class="btn btn-icon btn-icon-sm" title="Delete" aria-label="Delete ${escapeAttr(d.name)}" onclick="openDeleteWorkspaceModal('${escapeAttr(d.id)}')"><i class="ph ph-trash" aria-hidden="true"></i></button>
+        </div>
+      </article>`;
+  }).join('');
+}
+window.renderHomeDashboards = renderHomeDashboards;
+
+// Called on every auth change. Only re-renders if home is showing;
+// openHome() renders fresh whenever it's reopened anyway.
+function refreshHomeDashboards() {
+  if (!document.getElementById('home-view').hidden) renderHomeDashboards();
+}
+
+let pendingOpenDashboardId = null;
+let pendingDeleteDashboardId = null;
+
+window.requestOpenDashboard = function(id) {
+  if (id === currentWorkspaceId && hasLoadedWorkspace()) { returnToWorkspace(); return; }
+  if (hasLoadedWorkspace() && !workspaceSynced) {
+    pendingOpenDashboardId = id;
+    document.getElementById('switch-workspace-modal').hidden = false;
+    return;
+  }
+  loadCloudDashboard(id);
+};
+
+window.closeSwitchWorkspaceModal = function() {
+  document.getElementById('switch-workspace-modal').hidden = true;
+  pendingOpenDashboardId = null;
+};
+
+window.confirmSwitchWorkspace = function() {
+  const id = pendingOpenDashboardId;
+  closeSwitchWorkspaceModal();
+  if (id) loadCloudDashboard(id);
+};
+
+window.openDeleteWorkspaceModal = function(id) {
+  pendingDeleteDashboardId = id;
+  const name = document.querySelector(`[data-dashboard-name="${CSS.escape(id)}"]`);
+  document.getElementById('delete-workspace-name').textContent = name ? `“${name.textContent}”` : 'this dashboard';
+  document.getElementById('delete-workspace-modal').hidden = false;
+};
+
+window.closeDeleteWorkspaceModal = function() {
+  document.getElementById('delete-workspace-modal').hidden = true;
+  pendingDeleteDashboardId = null;
+};
+
+window.confirmDeleteWorkspace = async function() {
+  const id = pendingDeleteDashboardId;
+  closeDeleteWorkspaceModal();
+  if (!id || !sb || !currentUser) return;
+  try {
+    // Storage objects aren't covered by the row's ON DELETE CASCADE —
+    // remove them explicitly or they'd sit in the bucket as orphans.
+    const files = await listDashboardFiles(id);
+    if (files.length) await sb.storage.from(DATA_BUCKET).remove(files);
+    const { error } = await sb.from('dashboards').delete().eq('id', id);
+    if (error) throw error;
+    if (currentWorkspaceId === id) {
+      currentWorkspaceId = null;
+      tablesDirty = true;
+      markWorkspaceDirty();
+    }
+  } catch (err) {
+    setHomeUploadMessage(`Couldn't delete that dashboard: ${err.message || err}`, true);
+  }
+  renderHomeDashboards();
+};
+
+async function renameDashboard(id, name) {
+  const clean = name.trim().slice(0, 200);
+  if (!clean) return false;
+  if (id === currentWorkspaceId || !id) {
+    currentWorkspaceName = clean;
+    document.getElementById('workspace-name').textContent = clean;
+  }
+  if (!id || !sb || !currentUser) return true;
+  const { error } = await sb.from('dashboards').update({ name: clean }).eq('id', id);
+  if (error) { setFileInfo(`Couldn't rename: ${error.message}`, true); return false; }
+  return true;
+}
+
+function makeInlineEditable(el, original, onCommit) {
+  el.contentEditable = 'true';
+  el.focus();
+  document.execCommand('selectAll', false, null);
+  const done = async commit => {
+    el.removeAttribute('contenteditable');
+    const next = el.textContent.trim();
+    if (!commit || !next || next === original) { el.textContent = original; return; }
+    const ok = await onCommit(next);
+    if (!ok) el.textContent = original;
+  };
+  el.addEventListener('blur', () => done(true), { once: true });
+  el.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); el.blur(); }
+    if (e.key === 'Escape') { el.textContent = original; el.blur(); }
+  });
+}
+
+window.startRenameDashboard = function(id) {
+  const label = document.querySelector(`[data-dashboard-name="${CSS.escape(id)}"]`);
+  if (!label) return;
+  makeInlineEditable(label, label.textContent, name => renameDashboard(id, name));
+};
+
+// The app toolbar's dashboard name is click-to-rename too.
+window.startRenameCurrentDashboard = function() {
+  const el = document.getElementById('workspace-name');
+  makeInlineEditable(el, el.textContent, name => renameDashboard(currentWorkspaceId, name));
+};
 
 // ---- Export (Power BI / Tableau / image) ----
 // Python in the browser via Pyodide + XlsxWriter (ported from synth-sql's

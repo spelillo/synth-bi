@@ -1,9 +1,3 @@
--- supabase/schema.sql — the full synth-bi schema in one readable file.
--- Authoritative, versioned source: supabase/migrations/ (applied with
--- `supabase db push` after `supabase link --project-ref fvjlqcrjfbxgqjbbqdaa`
--- — see BUILD-INSTRUCTIONS.md §7). Keep this file in sync when adding a
--- migration; never paste it into the dashboard SQL editor by hand.
-
 -- synth-bi initial schema (applied with `supabase db push`; mirrored in
 -- supabase/schema.sql for reading). Adapted from synth-sql's schema.sql:
 -- kept the per-user workspace + datasets + Storage pattern and

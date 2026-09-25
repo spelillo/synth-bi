@@ -4,9 +4,68 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Privacy Policy — Synth-BI</title>
+  <meta name="description" content="How Synth-BI handles your data.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
-  <!-- STUB — port/adapt from synth-sql's privacy.html. -->
+  <!-- Adapted from synth-sql's privacy.html for synth-bi: Excel, saved dashboards and table data, local-only AI query results, local export. -->
 </head>
-<body></body>
+<body>
+  <header class="mk-nav">
+    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <nav class="mk-nav-links" aria-label="Main">
+      <a href="/welcome">About</a>
+      <a href="/guides">Guides</a>
+      <a href="/?auth=signin">Sign in</a>
+      <a href="/" class="btn btn-tertiary btn-sm">Open Synth-BI</a>
+    </nav>
+  </header>
+
+  <main class="mk-main mk-legal">
+    <div class="mk-card">
+      <h1>Privacy Policy</h1>
+      <p class="mk-updated">Last updated: September 25, 2026</p>
+
+      <h2>What we collect</h2>
+      <p>In Lite Mode: nothing. In Normal Mode: the email address you sign in with, a count of your AI assistant requests (used for rate limiting), and any dashboard you explicitly save — its tables' data, tiles, layout, settings, and assistant conversation.</p>
+
+      <h2>How your data is processed</h2>
+      <p>Your files are parsed into a SQLite database running entirely inside your browser tab, using WebAssembly. Queries, charts, and exported files (Excel workbooks, Tableau data sources, dashboard images) are all generated on your device. Your data leaves your device only if you sign in and click Save to cloud, in which case it's stored in our database provider (Supabase) and readable only by your account.</p>
+
+      <h2>The AI assistant &amp; third-party processing</h2>
+      <p>When you use the assistant, your message plus your tables' schema (table and column names, column types, and row counts), your dashboard's tile titles and queries, and recent messages in the conversation are sent to our AI provider (Groq) to generate a response. Your row data is never included: when the assistant writes a query, it runs in your browser and its results are shown only to you. If a drafted query fails, the database's error message (for example, "no such column") is sent back so the assistant can fix it. If you paste real data into your own message, that text is sent as part of the request.</p>
+
+      <h2>Cookies &amp; local storage</h2>
+      <p>Interface preferences, such as the assistant panel's width, are stored in your browser's local storage, on your device only. Signed-in sessions use a standard authentication token. We don't use advertising or third-party tracking cookies.</p>
+
+      <h2>Your choices &amp; data deletion</h2>
+      <p>You can delete any saved dashboard yourself from the home page; this removes its tables' data from storage too. To delete your account entirely, contact us and we'll remove your data.</p>
+
+      <h2>Children's privacy</h2>
+      <p>Synth-BI isn't directed at children under 13, and we don't knowingly collect data from them.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>We may update this Privacy Policy from time to time. Material changes will be reflected by updating the date above.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about this policy, or want your data deleted? Reach us at <a href="mailto:spelillo11@gmail.com">spelillo11@gmail.com</a>.</p>
+    </div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <span class="mk-brand-word">synth<span class="mk-brand-bi">BI</span></span>
+      <nav aria-label="Footer">
+        <a href="/welcome">About</a>
+        <a href="/guides">Guides</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+      </nav>
+      <span class="mk-footer-copy">&copy; 2026 Synth. All rights reserved.</span>
+    </div>
+  </footer>
+</body>
 </html>

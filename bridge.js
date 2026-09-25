@@ -13,7 +13,11 @@
 // about it the same way. Each on*()
 // returns an unsubscribe function.
 
-const bridgeListeners = { schema: new Set(), tiles: new Set(), auth: new Set(), aiMode: new Set(), settings: new Set() };
+const bridgeListeners = { schema: new Set(), tiles: new Set(), auth: new Set(), aiMode: new Set(), settings: new Set(), chat: new Set() };
+
+// Set by the island (main.jsx): renders a small PNG of the live canvas for
+// saved-dashboard thumbnails. The shell never draws the canvas itself.
+let thumbnailRenderer = null;
 
 function emitBridgeEvent(kind, payload) {
   bridgeListeners[kind].forEach(cb => {
@@ -39,6 +43,10 @@ function notifyTilesChange() {
 
 function notifyDashboardSettingsChange() {
   emitBridgeEvent('settings', dashboardSettings);
+}
+
+function notifyChatRestored() {
+  emitBridgeEvent('chat', chatHistory);
 }
 
 function notifyAuthChange() {
@@ -199,6 +207,19 @@ window.synthBridge = {
   },
   clearAiSession() {
     chatHistory = [];
+    if (typeof onDashboardTilesChanged === 'function') onDashboardTilesChanged();
+  },
+  // The saved conversation of a reopened dashboard (text of each turn).
+  getChatHistory() {
+    return chatHistory.map(m => ({ ...m }));
+  },
+  onChatRestored(callback) {
+    return subscribeBridge('chat', callback);
+  },
+
+  // ---- Thumbnails ----
+  setThumbnailRenderer(fn) {
+    thumbnailRenderer = typeof fn === 'function' ? fn : null;
   },
 
   // ---- Export ----

@@ -3,10 +3,105 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>About Synth-BI</title>
+  <title>About Synth-BI — dashboards from any file, in your browser</title>
+  <meta name="description" content="Synth-BI turns CSV, JSON, and Excel files into dashboards right in your browser. Build tiles by hand or with AI, then export to Power BI or Tableau.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
-  <!-- STUB — Lite vs. Normal Mode comparison, how it works, background. Mirrors synth-sql's welcome.html. -->
+  <!-- Lite vs. Normal Mode, how it works, and what the product does. Mirrors synth-sql's welcome.html in the Wise design system (marketing.css). -->
 </head>
-<body></body>
+<body>
+  <header class="mk-nav">
+    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <nav class="mk-nav-links" aria-label="Main">
+      <a href="/welcome" aria-current="page">About</a>
+      <a href="/guides">Guides</a>
+      <a href="/?auth=signin">Sign in</a>
+      <a href="/" class="btn btn-tertiary btn-sm">Open Synth-BI</a>
+    </nav>
+  </header>
+
+  <main class="mk-main">
+    <section class="mk-hero">
+      <span class="mk-eyebrow">The next step after Synth for SQL</span>
+      <h1 class="mk-display">Any file in. A dashboard out.</h1>
+      <p class="mk-lead">Drop a CSV, JSON, or Excel file and build a dashboard of charts, KPIs, and notes in minutes, by hand or by asking the AI. When it's ready, hand it to Power BI or Tableau. Your data stays in your browser the whole time.</p>
+      <div class="mk-actions">
+        <a href="/" class="btn btn-primary"><i class="ph ph-upload-simple" aria-hidden="true"></i> Start with a file</a>
+        <a href="/guides" class="btn btn-tertiary">Read the guides</a>
+      </div>
+    </section>
+
+    <section class="mk-section" aria-labelledby="how">
+      <h2 class="mk-h2" id="how">How it works</h2>
+      <div class="mk-grid mk-grid-3 mk-steps">
+        <div class="mk-card"><h3>Upload</h3><p>CSV, JSON, or an Excel workbook. Each file, or each sheet, becomes a table in a real SQLite database running inside the tab. Related tables are detected so you can join them.</p></div>
+        <div class="mk-card"><h3>Build tiles</h3><p>Pick a table, a group-by, and a measure, or write SQL. Choose from 22 visuals, color them your way, and arrange them like slides with text boxes for titles and takeaways.</p></div>
+        <div class="mk-card"><h3>Export</h3><p>Download typed Excel tables for Power BI's Get Data, Tableau data sources that open already connected, and an image of the dashboard for decks.</p></div>
+      </div>
+    </section>
+
+    <section class="mk-section" aria-labelledby="modes">
+      <h2 class="mk-h2" id="modes">Two ways to use it, both free</h2>
+      <div class="mk-grid mk-grid-2">
+        <div class="mk-card">
+          <i class="ph ph-feather" aria-hidden="true"></i>
+          <h3>Lite Mode — no account</h3>
+          <p>Everything runs locally. Nothing is sent anywhere.</p>
+          <ul class="mk-list">
+            <li>Upload CSV, JSON, and Excel files</li>
+            <li>Build tiles with the visual builder or SQL</li>
+            <li>All 22 chart types, colors, text boxes, layout</li>
+            <li>Table View and relationship detection</li>
+            <li class="is-no">AI assistant</li>
+            <li class="is-no">Saved dashboards and export</li>
+          </ul>
+        </div>
+        <div class="mk-card mk-card-green">
+          <i class="ph ph-sparkle" aria-hidden="true"></i>
+          <h3>Normal Mode — free sign-in</h3>
+          <p>Everything in Lite Mode, plus:</p>
+          <ul class="mk-list">
+            <li>AI assistant: ask questions about your data, or describe a chart and fine-tune the draft</li>
+            <li>Save dashboards and open them on any device</li>
+            <li>Export to Power BI and Tableau, plus a dashboard image</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="mk-section" aria-labelledby="privacy">
+      <h2 class="mk-h2" id="privacy">Private by design</h2>
+      <div class="mk-grid mk-grid-3">
+        <div class="mk-card"><i class="ph ph-browser" aria-hidden="true"></i><h3>Runs in your tab</h3><p>Parsing, queries, charts, and export files are all computed on your computer. There's no server-side database of your uploads.</p></div>
+        <div class="mk-card"><i class="ph ph-eye-slash" aria-hidden="true"></i><h3>The AI sees schema, not rows</h3><p>The assistant gets column names and types. When a question needs numbers, it writes a query that runs locally, and the results never go back to it.</p></div>
+        <div class="mk-card"><i class="ph ph-cloud-check" aria-hidden="true"></i><h3>Saving is your call</h3><p>Nothing is stored in the cloud unless you're signed in and click Save to cloud, and you can delete a saved dashboard at any time.</p></div>
+      </div>
+    </section>
+
+    <div class="mk-band">
+      <div>
+        <h2>Turn a file into a dashboard.</h2>
+        <p>No setup, no database, no account needed to start.</p>
+      </div>
+      <a href="/" class="btn btn-primary">Open Synth-BI</a>
+    </div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <span class="mk-brand-word">synth<span class="mk-brand-bi">BI</span></span>
+      <nav aria-label="Footer">
+        <a href="/welcome">About</a>
+        <a href="/guides">Guides</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+      </nav>
+      <span class="mk-footer-copy">&copy; 2026 Synth. All rights reserved.</span>
+    </div>
+  </footer>
+</body>
 </html>

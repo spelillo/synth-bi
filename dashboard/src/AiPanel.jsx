@@ -49,6 +49,25 @@ function suggestionsFor(mode, schema) {
   ].filter(Boolean);
 }
 
+function historyToTurns(history) {
+  const turns = [];
+  history.forEach((m, i) => {
+    const id = -1 - i;
+    if (m.role === 'user') { turns.push({ id, role: 'user', text: m.content, mode: m.mode || 'ask' }); return; }
+    if (m.mode === 'build') {
+      let text = 'Built a tile.';
+      try { text = JSON.parse(String(m.content).match(/\{[\s\S]*\}/)[0]).message || text; } catch { /* keep default */ }
+      turns.push({ id, role: 'assistant', mode: 'build', text, reply: { mode: 'build', kind: 'restored', text } });
+      return;
+    }
+    const sqls = [];
+    String(m.content).replace(/```sql\s*\n?([\s\S]*?)```/gi, (x, code) => { sqls.push(code.trim()); return x; });
+    const queries = sqls.map(sql => { try { return { sql, result: bridge.runQuery(sql, { maxRows: 200 }) }; } catch (err) { return { sql, error: err.message }; } });
+    turns.push({ id, role: 'assistant', mode: 'ask', text: m.content, reply: { mode: 'ask', text: m.content, queries } });
+  });
+  return turns;
+}
+
 function ResultTable({ result }) {
   const [expanded, setExpanded] = useState(false);
   const rows = expanded ? result.rows.slice(0, 200) : result.rows.slice(0, 8);
@@ -130,6 +149,14 @@ export default function AiPanel({ onCollapse, onReviewDraft, onAddDraft, onAddTe
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [turns]);
+
+  // A reopened dashboard brings its conversation back: replay it as turns
+  // (Ask queries re-run locally, Build replies show their message).
+  useEffect(() => {
+    const restore = history => setTurns(historyToTurns(history));
+    restore(bridge.getChatHistory());
+    return bridge.onChatRestored(restore);
+  }, []);
 
   useEffect(() => {
     const el = inputRef.current;

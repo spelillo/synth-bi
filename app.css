@@ -264,9 +264,20 @@ a { color: var(--color-ink); }
 .home-save-card .btn { margin-top: var(--space-sm); }
 
 /* saved dashboard cards (populated by app.js renderHomeDashboards) */
-.dash-card { border-radius: var(--radius-lg); background: var(--color-canvas-soft); padding: var(--space-md); display: flex; flex-direction: column; gap: var(--space-sm); }
-.dash-card-thumb { background: var(--color-canvas); border-radius: var(--radius-md); aspect-ratio: 16 / 9; overflow: hidden; }
-.dash-card-thumb svg { display: block; width: 100%; height: 100%; }
+.dash-card { border-radius: var(--radius-lg); background: var(--color-canvas-soft); padding: var(--space-md); display: flex; flex-direction: column; gap: 6px; border: 1px solid transparent; }
+.dash-card.is-open { border-color: var(--color-ink-deep); background: var(--color-primary-pale); }
+.dash-card.is-loading { height: 170px; animation: card-pulse 1.2s ease-in-out infinite; }
+@keyframes card-pulse { 50% { opacity: 0.55; } }
+@media (prefers-reduced-motion: reduce) { .dash-card.is-loading { animation: none; } }
+.dash-card-thumb { display: flex; align-items: center; justify-content: center; width: 100%; padding: 0; border: 0; cursor: pointer; background: var(--color-canvas); border-radius: var(--radius-md); aspect-ratio: 16 / 9; overflow: hidden; color: var(--color-mute); font-size: 28px; }
+.dash-card-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top left; }
+.dash-card-thumb:hover { outline: 2px solid var(--color-ink); outline-offset: 1px; }
+.dash-card-name[contenteditable="true"] { background: var(--color-canvas); border-radius: 4px; padding: 0 4px; outline: 2px solid var(--color-ink); white-space: normal; }
+.btn-icon-sm { width: 32px; height: 32px; font-size: 15px; background: transparent; }
+.dash-card-actions { align-items: center; }
+.workspace-name { cursor: text; border-radius: 6px; }
+.workspace-name:hover { background: rgba(255, 255, 255, 0.5); }
+.workspace-name[contenteditable="true"] { background: var(--color-canvas); outline: 2px solid var(--color-ink); overflow: visible; text-overflow: clip; }
 .dash-card-name { font-weight: 600; font-size: 15px; line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dash-card-meta { font-size: 12px; line-height: 16px; color: var(--color-mute); }
 .dash-card-actions { display: flex; gap: var(--space-xs); }

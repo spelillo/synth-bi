@@ -4,7 +4,7 @@
 // public) — points at synth-bi's own Supabase project, not synth-sql's.
 //
 // Account-pitch copy changes for synth-bi's actual perks: save dashboards
-// across devices, AI assistant (Ask + Agent mode), and — the one perk that's
+// across devices, AI assistant (Ask + Build mode), and — the one perk that's
 // stricter than synth-sql's — export to Power BI/Tableau requires an account
 // even though it isn't an AI feature (initial-build.md §7).
 //
@@ -49,7 +49,7 @@ function handleAuthChange(session) {
   aiEnabled = !!currentUser;
   updateCloudButtons();
   updateHomeSaveCard();
-  if (typeof refreshHomeDashboards === 'function') refreshHomeDashboards();
+  refreshHomeDashboards();
   notifyAuthChange();
 }
 
@@ -377,8 +377,11 @@ window.signOutUser = async function() {
   currentWorkspaceName = null;
   dataLoaded = false;
   aiEnabled = false;
+  dashboardSettings = { background: '', layout: 'free', spacing: 'comfortable', corners: 'rounded' };
 
   notifySchemaChange();
   notifyTilesChange();
+  notifyDashboardSettingsChange();
+  notifyChatRestored();
   openHome();
 };
