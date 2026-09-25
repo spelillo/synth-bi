@@ -1120,6 +1120,118 @@ function revealApp() {
   setActiveView('app');
 }
 
+// ---- Export (Power BI / Tableau / image) ----
+// Python in the browser via Pyodide + XlsxWriter (ported from synth-sql's
+// charts.js loadExcelEngine): loaded only on the first export click, and
+// the tables are handed to excel_chart.py in-process — nothing is uploaded.
+// Export requires sign-in (initial-build.md §7) even though it costs
+// nothing server-side.
+const PYODIDE_VERSION = '0.29.5';
+const PYODIDE_BASE = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+const XLSXWRITER_WHEEL = '/vendor/xlsxwriter-3.2.9-py3-none-any.whl';
+let excelEnginePromise = null;
+
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error(`Couldn't load ${src}`));
+    document.head.appendChild(s);
+  });
+}
+
+function loadExcelEngine(onStatus) {
+  if (!excelEnginePromise) {
+    excelEnginePromise = (async () => {
+      onStatus('Loading Python (first export only, a few seconds)…');
+      await loadScriptOnce(`${PYODIDE_BASE}pyodide.js`);
+      const py = await loadPyodide({ indexURL: PYODIDE_BASE });
+      onStatus('Loading the Excel writer…');
+      const [wheel, source] = await Promise.all([
+        fetch(XLSXWRITER_WHEEL).then(r => { if (!r.ok) throw new Error('XlsxWriter download failed'); return r.arrayBuffer(); }),
+        fetch('/excel_chart.py').then(r => { if (!r.ok) throw new Error('Excel exporter download failed'); return r.text(); }),
+      ]);
+      py.unpackArchive(wheel, 'zip', { extractDir: '/opt/xlsxwriter' });
+      py.runPython("import sys\nif '/opt/xlsxwriter' not in sys.path: sys.path.insert(0, '/opt/xlsxwriter')");
+      py.runPython(source);
+      return py;
+    })().catch(err => { excelEnginePromise = null; throw err; });
+  }
+  return excelEnginePromise;
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+function exportSlug() {
+  return (getWorkspaceDisplayName() || 'dashboard').replace(/\.[^.]+$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'dashboard';
+}
+
+// options: { tableNames, excel, tableau, tdsFiles: [{ fileName, content }],
+// image: Blob|null, files: [{ path, text }], onStatus }. Resolves with the
+// downloaded file name.
+async function exportDashboard(options) {
+  if (!canUseFeature('export')) {
+    requireFeature('export');
+    throw new Error('Sign in to export.');
+  }
+  const onStatus = options.onStatus || (() => {});
+  const slug = exportSlug();
+  const wantData = options.excel || options.tableau;
+
+  if (!wantData) {
+    if (!options.image) throw new Error('Pick something to export.');
+    triggerDownload(options.image, `${slug}.png`);
+    return `${slug}.png`;
+  }
+
+  const names = (options.tableNames && options.tableNames.length ? options.tableNames : tables.map(t => t.name))
+    .filter(n => tables.some(t => t.name === n));
+  if (!names.length) throw new Error('Pick at least one table to export.');
+
+  const payloadTables = names.map(name => {
+    const meta = tables.find(t => t.name === name);
+    const result = db.exec(`SELECT * FROM "${name}"`);
+    const rows = result.length ? result[0].values : [];
+    return { name, columns: meta.columnInfo || meta.columns.map(c => ({ name: c, kind: 'text' })), rows };
+  });
+
+  const files = [...(options.files || [])];
+  if (options.tableau) (options.tdsFiles || []).forEach(f => files.push({ path: f.fileName, text: f.content }));
+  const binaries = [];
+  if (options.image) binaries.push({ path: 'dashboard.png', base64: await blobToBase64(options.image) });
+
+  const py = await loadExcelEngine(onStatus);
+  onStatus('Building your files…');
+  await yieldToUI();
+  const build = py.globals.get('build_export_zip');
+  const result = build(JSON.stringify({ folder: slug, tables: payloadTables, files, binaries }));
+  const bytes = result.toJs();
+  result.destroy();
+  build.destroy();
+  triggerDownload(new Blob([bytes], { type: 'application/zip' }), `${slug}.zip`);
+  return `${slug}.zip`;
+}
+
 // ---- Help ----
 
 window.openHelpPanel = function() {

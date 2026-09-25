@@ -202,14 +202,17 @@ window.synthBridge = {
   },
 
   // ---- Export ----
-  // Both resolve once the download has been handed to the browser; see
-  // app.js exportDashboard() for the bundle layout.
-  exportToExcel(tileIds, options) {
+  // Power BI (typed Excel Tables), Tableau (.tds + the same workbooks), and
+  // a dashboard image, bundled into one .zip by the shell (app.js
+  // exportDashboard + excel_chart.py under Pyodide). Sign-in required.
+  exportDashboard(options) {
     if (typeof exportDashboard !== 'function') return Promise.reject(new Error('Export isn\'t available yet.'));
-    return exportDashboard({ tileIds, ...options, target: 'excel' });
+    return exportDashboard(options);
   },
-  exportToTableau(tileIds, options) {
-    if (typeof exportDashboard !== 'function') return Promise.reject(new Error('Export isn\'t available yet.'));
-    return exportDashboard({ tileIds, ...options, target: 'tableau' });
+  exportToExcel(tableNames, options = {}) {
+    return this.exportDashboard({ ...options, tableNames, excel: true });
+  },
+  exportToTableau(tableNames, options = {}) {
+    return this.exportDashboard({ ...options, tableNames, tableau: true });
   },
 };
