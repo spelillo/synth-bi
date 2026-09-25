@@ -1,0 +1,19 @@
+{
+  "name": "synth-bi-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "React island: the dashboard canvas mounted into the vanilla shell at #dashboard-root (see ../bridge.js)",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "react": "^18",
+    "react-dom": "^18",
+    "react-grid-layout": "^1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4",
+    "vite": "^5"
+  }
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synth-BI</title>
+  <link rel="stylesheet" href="/tokens.css">
+  <!--
+    STUB — see BUILD-INSTRUCTIONS.md for the full home-view / app-view layout
+    spec (user flow, UI/UX). Structure mirrors synth-sql's synth.html:
+    home-view (saved dashboards + drop zone) swaps for app-view (header, tab
+    bar, tab panels) once a file is loaded.
+  -->
+</head>
+<body>
+  <div id="home-view">
+    <!-- home-grid: "Your dashboards" (left) / drop zone (center) / how-it-works + save-account card (right) -->
+  </div>
+
+  <div id="app-view" hidden>
+    <!-- header: workspace switcher, + add table, save-to-cloud, help -->
+    <!-- tabs: Dashboard / Table View / Relationships -->
+    <!-- #tab-dashboard hosts #dashboard-root, mounted by the React island below -->
+    <div id="tab-dashboard" class="tab-panel active">
+      <div id="dashboard-root"></div>
+    </div>
+    <div id="tab-table" class="tab-panel"></div>
+    <div id="tab-relationships" class="tab-panel"></div>
+  </div>
+
+  <!-- Shared globals — load order matters, state.js declares them first (see state.js) -->
+  <script src="/state.js"></script>
+  <script src="/bridge.js"></script>
+  <script src="/csv-parser.js"></script>
+  <script src="/json-parser.js"></script>
+  <script src="/xlsx-parser.js"></script>
+  <script src="/auth.js"></script>
+  <script src="/checkout.js"></script>
+  <script src="/grid.js"></script>
+  <script src="/chat.js"></script>
+  <script src="/app.js"></script>
+
+  <!-- Dashboard island — built from /dashboard, output lands in /dashboard-dist
+       (see dashboard/vite.config.js). Stable filename, no manifest needed. -->
+  <script type="module" src="/dashboard-dist/dashboard.js"></script>
+  <link rel="stylesheet" href="/dashboard-dist/dashboard.css">
+</body>
+</html>

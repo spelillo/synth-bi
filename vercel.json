@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "rewrites": [
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/welcome", "destination": "/welcome.html" },
+    { "source": "/guides", "destination": "/guides.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/privacy", "destination": "/privacy.html" }
+  ],
+  "redirects": [
+    { "source": "/about", "destination": "/welcome", "permanent": true }
+  ]
+}

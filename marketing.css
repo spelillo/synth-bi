@@ -1,0 +1,5 @@
+/* marketing.css — shared styling for the static pages (welcome.html,
+   guides.html, terms.html, privacy.html). Reads its values from tokens.css,
+   which must be loaded first. Mirrors synth-sql's marketing.css in role;
+   content ported once the Wise-styled page layouts are designed
+   (see BUILD-INSTRUCTIONS.md). */

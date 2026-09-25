@@ -1,0 +1,10 @@
+-- supabase/schema.sql — starting point adapted from synth-sql's schema.sql.
+-- Expect to keep: profiles, workspaces/tables metadata, chat sessions, and
+-- the ai_usage_events table _aiRateLimit.js reads/writes.
+--
+-- New for synth-bi: a `dashboards` table (or a `tiles` jsonb column on the
+-- existing workspace row) to persist dashboardTiles — see initial-build.md §5.
+-- No organizations/enterprise tables carried over (no paid tier — §7).
+--
+-- STUB — port the relevant subset of synth-sql/supabase/schema.sql, add the
+-- dashboard-tiles persistence shape.

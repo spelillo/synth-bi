@@ -1,0 +1,72 @@
+/* tokens.css — the Wise-inspired design system (see DESIGN-wise.md) as CSS
+   custom properties. Single source of truth for both the vanilla shell
+   (index.html etc.) and the dashboard/ React island, which imports this file
+   directly rather than duplicating any values. */
+
+:root {
+  /* ---- Color ---- */
+  --color-primary: #9fe870;
+  --color-on-primary: #0e0f0c;
+  --color-primary-active: #cdffad;
+  --color-primary-neutral: #c5edab;
+  --color-primary-pale: #e2f6d5;
+
+  --color-ink: #0e0f0c;
+  --color-ink-deep: #163300;
+  --color-body: #454745;
+  --color-mute: #868685;
+
+  --color-canvas: #ffffff;
+  --color-canvas-soft: #e8ebe6;
+
+  --color-positive: #2ead4b;
+  --color-positive-deep: #054d28;
+  --color-warning: #ffd11a;
+  --color-warning-deep: #b86700;
+  --color-warning-content: #4a3b1c;
+  --color-negative: #d03238;
+  --color-negative-deep: #a72027;
+  --color-negative-darkest: #a7000d;
+  --color-negative-bg: #320707;
+
+  --color-accent-orange: #ffc091;
+  --color-accent-cyan: #38c8ff;
+
+  /* ---- Radius ---- */
+  --radius-none: 0px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ---- Spacing (4px base unit) ---- */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* ---- Typography ----
+     Wise Sans is proprietary — DESIGN-wise.md's documented substitute is
+     Inter/Manrope at weight 900. Manrope listed first since it's the closer
+     match for the display weight; falls through to Inter for everything
+     else (DESIGN-wise.md's own two-face system). */
+  --font-display: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* ---- "Synth" chart series palette (the default preview mode, §8a) ----
+     Inherited as-is from synth-sql's charts.js — already validated for
+     adjacent-pair colorblind-safety. Worth a deliberate design pass later to
+     confirm it still reads well against the Wise lime-green/sage system
+     rather than synth-sql's warm-cream one; flagged here, not re-derived. */
+  --chart-series-1: #eb6834;
+  --chart-series-2: #2a78d6;
+  --chart-series-3: #1baf7a;
+  --chart-series-4: #4a3aa7;
+  --chart-series-5: #eda100;
+  --chart-series-6: #e87ba4;
+}
