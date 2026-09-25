@@ -7,13 +7,13 @@
 // for the full architecture writeup.
 //
 // Subscriptions (onSchemaChange / onTilesChange / onAuthChange /
-// onAiModeChange) are how shell-side changes reach the island: app.js,
-// auth.js, and chat.js call the notify*() helpers below after mutating the
-// globals they own, and every subscriber — the island today, Agent Mode's
-// tool-calling loop in v1.1 — hears about it the same way. Each on*()
+// onAiModeChange / onDashboardSettingsChange) are how shell-side changes
+// reach the island: app.js, auth.js, and chat.js call the notify*() helpers
+// below after mutating the globals they own, and every subscriber hears
+// about it the same way. Each on*()
 // returns an unsubscribe function.
 
-const bridgeListeners = { schema: new Set(), tiles: new Set(), auth: new Set(), aiMode: new Set() };
+const bridgeListeners = { schema: new Set(), tiles: new Set(), auth: new Set(), aiMode: new Set(), settings: new Set() };
 
 function emitBridgeEvent(kind, payload) {
   bridgeListeners[kind].forEach(cb => {
@@ -35,6 +35,10 @@ function notifySchemaChange() {
 
 function notifyTilesChange() {
   emitBridgeEvent('tiles', dashboardTiles);
+}
+
+function notifyDashboardSettingsChange() {
+  emitBridgeEvent('settings', dashboardSettings);
 }
 
 function notifyAuthChange() {
@@ -136,6 +140,19 @@ window.synthBridge = {
     return subscribeBridge('tiles', callback);
   },
 
+  // ---- Canvas settings (background, layout mode, spacing, corners) ----
+  getDashboardSettings() {
+    return dashboardSettings;
+  },
+  setDashboardSettings(patch) {
+    dashboardSettings = { ...dashboardSettings, ...patch };
+    if (typeof onDashboardTilesChanged === 'function') onDashboardTilesChanged();
+    notifyDashboardSettingsChange();
+  },
+  onDashboardSettingsChange(callback) {
+    return subscribeBridge('settings', callback);
+  },
+
   // ---- Preview theme (v1.1 destination preview, §8a) ----
   getPreviewMode() {
     return previewMode;
@@ -163,18 +180,19 @@ window.synthBridge = {
 
   // ---- AI ----
   getAiMode() {
-    return aiMode; // 'ask' | 'agent'
+    return aiMode; // 'ask' | 'build'
   },
   setAiMode(mode) {
-    if (mode !== 'ask' && mode !== 'agent') return;
+    if (mode !== 'ask' && mode !== 'build') return;
     aiMode = mode;
     emitBridgeEvent('aiMode', aiMode);
   },
   onAiModeChange(callback) {
     return subscribeBridge('aiMode', callback);
   },
-  // Proxies to chat.js's Groq call (schema-only context). Resolves to
-  // { text, proposals: [{ sql, chartSpec }] } in Ask Mode.
+  // Proxies to chat.js's Groq call (schema-only context). context.mode is
+  // 'ask' | 'build'. Resolves to { mode: 'ask', text, queries } or
+  // { mode: 'build', kind: 'tile'|'text'|'clarify', text, draft?, textBox? }.
   sendAiMessage(message, context) {
     if (typeof sendAskMessage !== 'function') return Promise.reject(new Error('The AI assistant isn\'t available yet.'));
     return sendAskMessage(message, context);

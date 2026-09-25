@@ -36,3 +36,9 @@ export function useAiMode() {
   useEffect(() => bridge.onAiModeChange(next => setMode(next)), []);
   return mode;
 }
+
+export function useDashboardSettings() {
+  const [settings, setSettings] = useState(() => bridge.getDashboardSettings());
+  useEffect(() => bridge.onDashboardSettingsChange(next => setSettings(next)), []);
+  return settings;
+}

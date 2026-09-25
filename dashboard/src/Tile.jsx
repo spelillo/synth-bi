@@ -3,11 +3,15 @@
 // (shared/chart-themes.js), with edit/remove affordances. Clicking a tile
 // opens TileEditor.jsx scoped to that tile's query + chart spec.
 //
-// Also exports the two pieces TileEditor's live preview reuses, so the
-// preview is literally the same render path as a committed tile:
+// Also exports the pieces TileEditor's live preview reuses, so the preview
+// is literally the same render path as a committed tile:
 //   - useTileChart(): run the SQL (via the bridge) -> analyze columns ->
 //     resolve the stored name-based chartSpec -> chart data
 //   - ChartCanvas: draws that chart as an SVG sized to its container
+//   - TileFrame: the tile chrome (title, subtitle, background, border),
+//     driven by the tile's `appearance`
+//
+// Text boxes are tiles too (kind: 'text') — see TextTile.jsx.
 
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { bridge } from './bridge.js';
@@ -19,6 +23,18 @@ import {
   resolveChartSpec,
 } from '../../shared/chart-engine.js';
 import { getChartTheme } from '../../shared/chart-themes.js';
+
+export const DEFAULT_APPEARANCE = {
+  showTitle: true,
+  subtitle: '',
+  titleAlign: 'left',
+  titleSize: 'md',
+  titleColor: '',
+  background: '',
+  border: false,
+};
+
+const TITLE_SIZES = { sm: 13, md: 15, lg: 19, xl: 24 };
 
 export function runTileQuery(sql) {
   try {
@@ -45,6 +61,7 @@ export function chartFromResult(result, storedSpec) {
 // The title a tile actually shows: the user's own, or the auto-generated
 // one (stored as '' so it keeps tracking the query) resolved from its data.
 export function tileDisplayTitle(tile) {
+  if (tile.kind === 'text') return (tile.text || 'Text box').split('\n')[0].replace(/^#+\s*/, '').slice(0, 40) || 'Text box';
   if (tile.chartSpec && tile.chartSpec.title) return tile.chartSpec.title;
   const chart = chartFromResult(runTileQuery(tile.sql), tile.chartSpec);
   return (chart.spec && chart.spec.title) || 'Untitled tile';
@@ -55,10 +72,29 @@ export function useTileChart(sql, storedSpec, schemaVersion) {
   return useMemo(() => chartFromResult(result, storedSpec), [result, storedSpec]);
 }
 
+function hexLuminance(hex) {
+  const c = String(hex || '').replace('#', '');
+  if (c.length < 6) return 1;
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(c.slice(i, i + 2), 16) / 255);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export const isDarkColor = hex => hexLuminance(hex) < 0.4;
+
+// Chart ink that stays readable on the tile's own background.
+export function surfaceOverrides(background) {
+  if (!background) return null;
+  if (background === 'transparent') return { surface: 'none' };
+  if (isDarkColor(background)) {
+    return { surface: background, text: '#ffffff', text2: '#c9cec5', grid: 'rgba(255,255,255,0.12)', axis: 'rgba(255,255,255,0.35)' };
+  }
+  return { surface: background };
+}
+
 // Draws at the container's real pixel width (1:1 text, no scaling blur),
-// re-rendering when the tile is resized. Horizontal bar charts can be
-// taller than the tile — the body scrolls rather than squashing them.
-export const ChartCanvas = memo(function ChartCanvas({ spec, data, previewMode = 'synth', compact = true }) {
+// re-rendering when the tile is resized. Horizontal bar charts and tables
+// can be taller than the tile — the body scrolls rather than squashing them.
+export const ChartCanvas = memo(function ChartCanvas({ spec, data, previewMode = 'synth', compact = true, themeOverrides = null }) {
   const ref = useRef(null);
   const [size, setSize] = useState(null);
 
@@ -77,17 +113,42 @@ export const ChartCanvas = memo(function ChartCanvas({ spec, data, previewMode =
   }, []);
 
   const svg = useMemo(() => {
-    if (!size || size.width < 80 || size.height < 60) return '';
-    const theme = getChartTheme(previewMode);
+    if (!size || size.width < 60 || size.height < 40) return '';
+    const theme = { ...getChartTheme(previewMode), ...(themeOverrides || {}) };
     return renderChartSVG(spec, data, theme, { width: size.width, height: size.height }, compact
-      ? { showTitle: false, minPlotHeight: 90, minPieHeight: 160 }
-      : { showTitle: false, minPlotHeight: 200, minPieHeight: 280 });
-  }, [spec, data, size, previewMode, compact]);
+      ? { showTitle: false, minPlotHeight: 80, minPieHeight: 140 }
+      : { showTitle: false, minPlotHeight: 180, minPieHeight: 260 });
+  }, [spec, data, size, previewMode, compact, themeOverrides]);
 
   return <div className="chart-canvas" ref={ref} dangerouslySetInnerHTML={{ __html: svg }} />;
 });
 
-function TileMenu({ onEdit, onDuplicate, onRemove }) {
+// Tile chrome shared by committed tiles and the editor's preview card.
+export function TileFrame({ title, appearance, actions, children, footnote, dragHandle = true, className = '' }) {
+  const a = { ...DEFAULT_APPEARANCE, ...(appearance || {}) };
+  const dark = a.background && a.background !== 'transparent' && isDarkColor(a.background);
+  const style = {
+    ...(a.background ? { '--tile-bg': a.background === 'transparent' ? 'transparent' : a.background } : {}),
+    ...(a.border ? { '--tile-border': dark ? 'rgba(255,255,255,0.3)' : 'var(--color-ink)' } : {}),
+    '--tile-title-color': a.titleColor || (dark ? '#ffffff' : 'var(--color-ink)'),
+    '--tile-title-size': `${TITLE_SIZES[a.titleSize] || 15}px`,
+  };
+  return (
+    <article className={`tile${dark ? ' is-dark' : ''}${a.showTitle ? '' : ' no-title'} ${className}`} style={style} aria-label={title}>
+      <header className={`tile-header${dragHandle ? ' tile-drag-handle' : ''}`}>
+        <div className="tile-heading" style={{ textAlign: a.titleAlign }}>
+          {a.showTitle && <h3 className="tile-title" title={title}>{title}</h3>}
+          {a.showTitle && a.subtitle && <p className="tile-subtitle">{a.subtitle}</p>}
+        </div>
+        {actions && <div className="tile-actions">{actions}</div>}
+      </header>
+      <div className="tile-body">{children}</div>
+      {footnote && <footer className="tile-footnote">{footnote}</footer>}
+    </article>
+  );
+}
+
+export function TileMenu({ items }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -98,7 +159,6 @@ function TileMenu({ onEdit, onDuplicate, onRemove }) {
     document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
   }, [open]);
-  const pick = fn => () => { setOpen(false); fn(); };
   return (
     <div className="tile-menu" ref={ref}>
       <button type="button" className="tile-icon-btn" aria-label="Tile options" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
@@ -106,35 +166,47 @@ function TileMenu({ onEdit, onDuplicate, onRemove }) {
       </button>
       {open && (
         <div className="tile-menu-popover" role="menu">
-          <button type="button" role="menuitem" onClick={pick(onEdit)}><i className="ph ph-pencil-simple" aria-hidden="true" /> Edit tile</button>
-          <button type="button" role="menuitem" onClick={pick(onDuplicate)}><i className="ph ph-copy" aria-hidden="true" /> Duplicate</button>
-          <button type="button" role="menuitem" className="is-danger" onClick={pick(onRemove)}><i className="ph ph-trash" aria-hidden="true" /> Remove</button>
+          {items.map(it => (
+            <button key={it.label} type="button" role="menuitem" className={it.danger ? 'is-danger' : ''} onClick={() => { setOpen(false); it.onClick(); }}>
+              <i className={`ph ${it.icon}`} aria-hidden="true" /> {it.label}
+            </button>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-export default function Tile({ tile, schemaVersion, previewMode, onEdit, onDuplicate, onRemove }) {
+export default function Tile({ tile, schemaVersion, previewMode, onEdit, onFormat, onDuplicate, onRemove }) {
   const chart = useTileChart(tile.sql, tile.chartSpec, schemaVersion);
   const title = (tile.chartSpec && tile.chartSpec.title) || (chart.spec && chart.spec.title) || 'Untitled tile';
+  const background = tile.appearance && tile.appearance.background;
+  const overrides = useMemo(() => surfaceOverrides(background), [background]);
   const truncated = chart.result && chart.result.truncated;
-  const shownNote = chart.data && chart.data.shown < chart.data.total
+  const shownNote = chart.data && chart.data.shown < chart.data.total && !chart.data.pivoted && !chart.data.kpi
     ? `Showing the first ${chart.data.shown.toLocaleString()} of ${chart.data.total.toLocaleString()}${truncated ? '+' : ''} rows`
     : null;
 
   return (
-    <article className="tile" aria-label={title}>
-      <header className="tile-header tile-drag-handle">
-        <h3 className="tile-title" title={title}>{title}</h3>
-        <div className="tile-actions">
+    <TileFrame
+      title={title}
+      appearance={tile.appearance}
+      footnote={shownNote}
+      actions={(
+        <>
           <button type="button" className="tile-icon-btn" aria-label={`Edit ${title}`} title="Edit tile" onClick={onEdit}>
             <i className="ph ph-pencil-simple" aria-hidden="true" />
           </button>
-          <TileMenu onEdit={onEdit} onDuplicate={onDuplicate} onRemove={onRemove} />
-        </div>
-      </header>
-      <div className="tile-body" onDoubleClick={onEdit}>
+          <TileMenu items={[
+            { label: 'Edit data & chart', icon: 'ph-pencil-simple', onClick: onEdit },
+            { label: 'Colors & format', icon: 'ph-palette', onClick: onFormat },
+            { label: 'Duplicate', icon: 'ph-copy', onClick: onDuplicate },
+            { label: 'Remove', icon: 'ph-trash', onClick: onRemove, danger: true },
+          ]} />
+        </>
+      )}
+    >
+      <div className="tile-chart" onDoubleClick={onEdit}>
         {chart.error ? (
           <div className={`tile-message${chart.kind === 'query' ? ' is-error' : ''}`}>
             <i className={`ph ${chart.kind === 'query' ? 'ph-warning-circle' : 'ph-chart-bar'}`} aria-hidden="true" />
@@ -142,10 +214,9 @@ export default function Tile({ tile, schemaVersion, previewMode, onEdit, onDupli
             <button type="button" className="btn btn-secondary btn-sm" onClick={onEdit}>Edit tile</button>
           </div>
         ) : (
-          <ChartCanvas spec={chart.spec} data={chart.data} previewMode={previewMode} />
+          <ChartCanvas spec={chart.spec} data={chart.data} previewMode={previewMode} themeOverrides={overrides} />
         )}
       </div>
-      {shownNote && <footer className="tile-footnote">{shownNote}</footer>}
-    </article>
+    </TileFrame>
   );
 }

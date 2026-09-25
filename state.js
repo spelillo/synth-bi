@@ -10,7 +10,7 @@ let SQL;                // sql.js module handle
 
 let currentUser = null;
 let aiEnabled = false;  // Ask/Agent mode only usable in Normal Mode (signed in) — initial-build.md §7
-let aiMode = 'ask';     // 'ask' | 'agent' — initial-build.md §6
+let aiMode = 'ask';     // 'ask' | 'build' — see chat.js (Build replaced the docs' act-freely Agent Mode)
 
 let dataLoaded = false;
 
@@ -34,8 +34,13 @@ let activeTableName = null;
 // (shared/chart-engine.js resolveChartSpec() maps names back to indexes at
 // render time). `source` is optional editor metadata so a Visual-mode tile
 // reopens in Visual mode with its fields intact; it never affects rendering.
-let dashboardTiles = [];      // [{ id, sql, chartSpec, position: { x, y, w, h }, source? }]
+let dashboardTiles = [];      // [{ id, sql, chartSpec, appearance?, position: { x, y, w, h }, source? }] | text boxes: [{ id, kind: 'text', text, style, position }]
 let previewMode = 'synth';    // 'synth' | 'powerbi' | 'tableau' — initial-build.md §8a
+
+// Canvas-level look & layout, saved with the dashboard. layout 'free' is
+// slide-like (tiles stay where they're dropped); 'flow' floats tiles up to
+// fill gaps. Tile positions are in a 24-column grid.
+let dashboardSettings = { background: '', layout: 'free', spacing: 'comfortable', corners: 'rounded' };
 
 let currentWorkspaceId = null;
 let currentWorkspaceName = null;

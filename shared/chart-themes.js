@@ -1,16 +1,17 @@
 // shared/chart-themes.js — the three chart themes chart-engine.js can
 // render against, keyed to state.js's `previewMode` ('synth' | 'powerbi' |
 // 'tableau'). Each theme supplies { surface, text, text2, grid, axis,
-// series, fontFamily } — the same shape synth-sql's chartTheme() already
-// returned for light/dark, extended with two new entries instead of just two
-// modes of one theme.
+// series, positive, negative, fontFamily } — the same shape synth-sql's
+// chartTheme() returned for light/dark, extended with two new entries
+// instead of just two modes of one theme.
 //
 // 'synth' reads its palette from tokens.css's --chart-series-* custom
-// properties (see tokens.css) when a document is available, falling back to
-// the same literal values otherwise (e.g. if this module is ever used
-// outside a browser). 'powerbi' and 'tableau' are sequenced into v1.1 with
-// the destination-preview re-skin (initial-build.md §8a/§10): until their
-// visual design pass happens they resolve to the Synth theme, so the
+// properties (green-led — see tokens.css) when a document is available,
+// falling back to the same literal values otherwise. A tile's own
+// style.palette / style.colors (chart-engine.js applyChartStyle) override
+// whichever theme is active. 'powerbi' and 'tableau' are sequenced into
+// v1.1 with the destination-preview re-skin (initial-build.md §8a/§10):
+// until their design pass happens they resolve to the Synth theme, so the
 // previewMode plumbing already works end to end and only these two entries
 // (plus dashboard/src/themes/*.css) need filling in.
 
@@ -20,7 +21,9 @@ const SYNTH_FALLBACK = {
   text2: '#454745',  // --color-body
   grid: '#eef0ec',
   axis: '#c9cec5',
-  series: ['#eb6834', '#2a78d6', '#1baf7a', '#4a3aa7', '#eda100', '#e87ba4'],
+  positive: '#054d28',
+  negative: '#d03238',
+  series: ['#9fe870', '#163300', '#38c8ff', '#ffc091', '#2ead4b', '#6b7a64', '#c5edab', '#054d28'],
   fontFamily: "Inter, system-ui, -apple-system, sans-serif",
 };
 

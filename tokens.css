@@ -59,14 +59,17 @@
   --font-body: 'Inter', system-ui, -apple-system, sans-serif;
 
   /* ---- "Synth" chart series palette (the default preview mode, §8a) ----
-     Inherited as-is from synth-sql's charts.js — already validated for
-     adjacent-pair colorblind-safety. Worth a deliberate design pass later to
-     confirm it still reads well against the Wise lime-green/sage system
-     rather than synth-sql's warm-cream one; flagged here, not re-derived. */
-  --chart-series-1: #eb6834;
-  --chart-series-2: #2a78d6;
-  --chart-series-3: #1baf7a;
-  --chart-series-4: #4a3aa7;
-  --chart-series-5: #eda100;
-  --chart-series-6: #e87ba4;
+     Led by the brand lime and the forest ink, then the system's two
+     tertiary accents (cyan, peach). Mirrors PALETTES.synth in
+     shared/chart-engine.js; synth-sql's orange-led palette survives there
+     as the "Classic" preset. Very light series colors get a darkened
+     stroke for thin lines (chart-engine.js strokeFor). */
+  --chart-series-1: #9fe870;
+  --chart-series-2: #163300;
+  --chart-series-3: #38c8ff;
+  --chart-series-4: #ffc091;
+  --chart-series-5: #2ead4b;
+  --chart-series-6: #6b7a64;
+  --chart-series-7: #c5edab;
+  --chart-series-8: #054d28;
 }

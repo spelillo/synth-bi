@@ -8,7 +8,10 @@
    .dash[data-preview="powerbi"] / [data-preview="tableau"] — chart colors
    come from shared/chart-themes.js, so no tile markup changes per theme. */
 
-.dash {
+
+/* The editor and export modals are portaled to <body>, outside .dash, so
+   they get the same tile-chrome variables here. */
+.dash, .tile-editor-overlay, .island-overlay {
   --dash-bg: var(--color-canvas-soft);
   --tile-bg: var(--color-canvas);
   --tile-radius: var(--radius-xl);

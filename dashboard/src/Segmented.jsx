@@ -25,7 +25,8 @@ export default function Segmented({ options, value, onChange, label, size = 'md'
           tabIndex={o.id === value ? 0 : -1}
           className={`segmented-btn${o.id === value ? ' is-active' : ''}`}
           disabled={o.disabled}
-          title={o.title}
+          title={o.title || o.ariaLabel}
+          aria-label={o.ariaLabel}
           onClick={() => onChange(o.id)}
         >
           {o.icon && <i className={`ph ${o.icon}`} aria-hidden="true" />}

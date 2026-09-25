@@ -1,5 +1,5 @@
 // dashboard/src/lib/visualSql.js — the TileEditor's Visual mode: turns a
-// { table, groupBy, dateGrain, agg, measure, filter } pick into the SQL the
+// { table, groupBy, dateGrain, splitBy, agg, measure, filter } pick into the SQL the
 // tile actually runs (BUILD-INSTRUCTIONS.md §5.3). The generated query is
 // always shown to the user read-only and becomes the starting point if they
 // switch to SQL mode, so it's written to be readable, not just correct:
@@ -63,6 +63,7 @@ export function defaultVisual(table) {
     table: table.name,
     groupBy: group ? group.name : '',
     dateGrain: group && group.kind === 'date' && group.isoDate ? 'month' : 'none',
+    splitBy: '',
     agg: measure ? 'sum' : 'count',
     measure: measure ? measure.name : '',
     filter: { column: '', op: 'eq', value: '' },
@@ -82,6 +83,7 @@ export function reconcileVisual(visual, schema) {
     table: table.name,
     groupBy: has(visual.groupBy) ? visual.groupBy : '',
     dateGrain: DATE_GRAINS.find(g => g.id === visual.dateGrain) ? visual.dateGrain : 'none',
+    splitBy: has(visual.splitBy) && visual.splitBy !== visual.groupBy ? visual.splitBy : '',
     agg: measureOk || agg === 'count' ? agg : 'count',
     measure: measureOk ? visual.measure : '',
     filter,
@@ -149,15 +151,19 @@ export function buildVisualSql(visual, schema) {
   if (groupCol) {
     const group = groupExpression(groupCol, visual.dateGrain);
     const groupSelect = group.alias ? `${group.expr} AS ${group.alias}` : group.expr;
+    // "Split by" adds a second grouping column — the chart pivots it into
+    // one series per value (Power BI's Legend well).
+    const splitCol = visual.splitBy && visual.splitBy !== visual.groupBy ? columnOf(table, visual.splitBy) : null;
+    const split = splitCol ? quoteIdent(splitCol.name) : null;
     const measureAlias = measure.alias === group.alias ? `${measure.alias}_value` : measure.alias;
-    lines.push(`SELECT ${groupSelect}, ${measure.expr} AS ${measureAlias}`);
+    lines.push(`SELECT ${groupSelect}, ${split ? `${split}, ` : ''}${measure.expr} AS ${measureAlias}`);
     lines.push(`FROM ${quoteIdent(table.name)}`);
     if (where) lines.push(`WHERE ${where}`);
-    lines.push(`GROUP BY ${group.expr}`);
+    lines.push(`GROUP BY ${group.expr}${split ? `, ${split}` : ''}`);
     // Time reads left to right; everything else ranks biggest first, so a
     // high-cardinality group-by still charts its top rows.
     const temporal = groupCol.kind === 'date' || /(year|month|quarter|week|date|day|period)/i.test(groupCol.name);
-    lines.push(temporal ? `ORDER BY ${group.expr}` : `ORDER BY ${measureAlias} DESC`);
+    lines.push(temporal ? `ORDER BY ${group.expr}${split ? `, ${split}` : ''}` : `ORDER BY ${measureAlias} DESC`);
   } else {
     lines.push(`SELECT ${measure.expr} AS ${measure.alias}`);
     lines.push(`FROM ${quoteIdent(table.name)}`);
