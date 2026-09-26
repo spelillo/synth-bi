@@ -24,7 +24,7 @@ async function initDB() {
 window.addEventListener('DOMContentLoaded', async () => {
   initHome();
   initTabs();
-  if (typeof initAuth === 'function') initAuth();
+  const authReady = typeof initAuth === 'function' ? initAuth() : Promise.resolve();
   try {
     SQL = await initDB();
     setAppStatus('ready');
@@ -32,6 +32,22 @@ window.addEventListener('DOMContentLoaded', async () => {
     console.error('sql.js failed to load:', err);
     setAppStatus('error');
     setHomeUploadMessage("Couldn't load the in-browser database engine. Check your connection and reload.", true);
+    return;
+  }
+
+  // Synth-sql's "want to enhance your visualization" banner (in its
+  // fullscreen chart view) links here with this param so the exact
+  // workspace it was looking at opens directly as a new dashboard.
+  const sqlWorkspaceId = new URLSearchParams(location.search).get('loadSqlWorkspace');
+  if (sqlWorkspaceId) {
+    window.history.replaceState({}, '', location.pathname);
+    await authReady;
+    if (currentUser) {
+      loadSqlWorkspace(sqlWorkspaceId);
+    } else {
+      setHomeUploadMessage('Sign in to load that Synth SQL workspace.');
+      openAccountModal('signin');
+    }
   }
 });
 
@@ -1346,6 +1362,96 @@ window.loadCloudDashboard = async function(dashboardId) {
     console.error(err);
     setHomeUploadMessage(`Couldn't open that dashboard: ${err.message || err}`, true);
   }
+};
+
+// ---- Building from a Synth SQL workspace ----
+// `sb` is a real client of synth-sql's own Supabase project (that's where
+// auth lives now), so this reads synth-sql's workspaces/datasets tables
+// directly — same-project RLS, no service-role proxy needed the way
+// synth-bi's own data does (see api/dashboards/*). Each dataset is a plain
+// CSV in synth-sql's Storage; parseCSVText (csv-parser.js) and
+// loadFileAsTable are the exact same functions the drag-and-drop upload
+// path uses.
+window.loadSqlWorkspace = async function(workspaceId) {
+  if (!workspaceId || !sb || !currentUser || !SQL) return;
+  const { data: ws, error: wsErr } = await sb.from('workspaces').select('*').eq('id', workspaceId).single();
+  if (wsErr || !ws) { setHomeUploadMessage(`Couldn't open that Synth SQL workspace: ${wsErr?.message || 'not found'}`, true); return; }
+  const { data: datasetRows, error: dErr } = await sb.from('datasets').select('*').eq('workspace_id', workspaceId).order('created_at', { ascending: true });
+  if (dErr) { setHomeUploadMessage(`Couldn't open that Synth SQL workspace: ${dErr.message}`, true); return; }
+
+  showLoadingOverlay();
+  try {
+    addLoadProgressUnits(Math.max(1, (datasetRows || []).reduce((sum, d) => sum + (d.row_count || 0), 0)));
+    const loadedTables = [];
+    for (const d of datasetRows || []) {
+      const { data: blob, error: dlErr } = await sb.storage.from('csvs').download(d.storage_path);
+      if (dlErr) throw dlErr;
+      const text = (await blob.text()).replace(/^﻿/, '');
+      const { headers, rows } = await parseCSVText(text);
+      loadedTables.push({ meta: d, headers, rows });
+    }
+
+    db = new SQL.Database();
+    tables = [];
+    for (const { meta, headers, rows } of loadedTables) {
+      await loadFileAsTable({ fileName: meta.filename, sourceType: 'csv' }, headers, rows, meta.table_name);
+    }
+
+    const { data: relRows } = await sb.from('workspace_relationships').select('*').eq('workspace_id', workspaceId);
+    activeTableName = tables.length ? tables[0].name : null;
+    dataLoaded = tables.length > 0;
+    relationships = (relRows || []).filter(r => r.confirmed).map(r => ({
+      id: `${r.from_table}.${r.from_column}|${r.to_table}.${r.to_column}`,
+      fromTable: r.from_table, fromColumn: r.from_column, toTable: r.to_table, toColumn: r.to_column,
+      confirmed: true, manual: true,
+    }));
+    rejectedRelationshipKeys = new Set();
+    dashboardTiles = [];
+    chatHistory = [];
+    currentWorkspaceId = null; // a new, unsaved synth-bi dashboard built from this snapshot
+    currentWorkspaceName = ws.name;
+    columnStatsCache = null;
+
+    setFileInfo(`${tables.length} table${tables.length === 1 ? '' : 's'} · from Synth SQL workspace "${ws.name}"`);
+    afterWorkspaceTablesChanged();
+    notifyTilesChange();
+    notifyDashboardSettingsChange();
+    notifyChatRestored();
+    tablesDirty = true;
+    markWorkspaceDirty();
+
+    completeLoadProgress(() => {
+      revealApp();
+      selectTab('dashboard');
+    });
+  } catch (err) {
+    hideLoadingOverlay();
+    console.error(err);
+    setHomeUploadMessage(`Couldn't open that Synth SQL workspace: ${err.message || err}`, true);
+  }
+};
+
+async function refreshSqlWorkspaceList() {
+  const wrap = document.getElementById('home-sql-import');
+  const select = document.getElementById('home-sql-select');
+  if (!wrap || !select) return;
+  if (!currentUser || !sb) { wrap.hidden = true; return; }
+  wrap.hidden = false;
+  select.disabled = true;
+  select.innerHTML = '<option value="">Loading…</option>';
+  const { data, error } = await sb.from('workspaces').select('id, name, updated_at').order('updated_at', { ascending: false });
+  select.disabled = false;
+  if (error || !data || !data.length) {
+    select.innerHTML = `<option value="">${error ? "Couldn't load workspaces" : 'No Synth SQL workspaces yet'}</option>`;
+    return;
+  }
+  select.innerHTML = '<option value="">Choose a workspace…</option>'
+    + data.map(w => `<option value="${escapeAttr(w.id)}">${escapeHtml(w.name)}</option>`).join('');
+}
+
+window.loadSelectedSqlWorkspace = function() {
+  const select = document.getElementById('home-sql-select');
+  if (select && select.value) loadSqlWorkspace(select.value);
 };
 
 // ---- Home view: "Your dashboards" ----

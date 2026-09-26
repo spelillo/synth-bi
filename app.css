@@ -246,6 +246,11 @@ a { color: var(--color-ink); }
 .home-upload-message { margin: 0; min-height: 20px; font-size: 14px; font-weight: 600; }
 .home-upload-message.error { color: var(--color-negative-darkest); }
 
+.home-sql-import { margin-top: var(--space-lg); }
+.home-sql-import label { display: block; font-size: 14px; font-weight: 600; color: var(--color-body); margin-bottom: var(--space-sm); }
+.home-sql-import-row { display: flex; gap: var(--space-sm); max-width: 420px; }
+.home-sql-import-row .select { flex: 1; min-width: 0; }
+
 .home-flow { display: flex; flex-direction: column; gap: var(--space-lg); }
 .home-flow-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
 .home-flow-steps li { display: flex; gap: var(--space-md); align-items: flex-start; }

@@ -97,6 +97,7 @@ function handleAuthChange(session) {
   updateCloudButtons();
   updateHomeSaveCard();
   refreshHomeDashboards();
+  refreshSqlWorkspaceList();
   notifyAuthChange();
 }
 

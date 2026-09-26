@@ -70,6 +70,13 @@
           <p class="home-dropzone-formats">CSV, JSON, NDJSON, and XLSX. Excel workbooks load every sheet as its own table.</p>
           <p id="home-upload-message" class="home-upload-message" role="status" aria-live="polite"></p>
         </div>
+        <div id="home-sql-import" class="home-sql-import" hidden>
+          <label for="home-sql-select">Or build from a Synth SQL workspace</label>
+          <div class="home-sql-import-row">
+            <select id="home-sql-select" class="select"><option value="">Choose a workspace…</option></select>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadSelectedSqlWorkspace()">Load</button>
+          </div>
+        </div>
       </section>
 
       <section class="home-flow" aria-labelledby="home-flow-title">
