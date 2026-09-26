@@ -5,22 +5,28 @@
 // signed-in account.
 //
 // Reads/writes public.ai_usage_events with the service-role key (RLS on,
-// zero policies — see supabase/migrations). Without SUPABASE_SERVICE_ROLE_KEY
-// the admin client is null and this fails open: AI works, just unmetered.
-// Fine for local development, not for production.
+// zero policies — see supabase/migrations). This is synth-bi's own data
+// project (fvjlqcrjfbxgqjbbqdaa), not the shared auth project _supabaseAuth.js
+// verifies tokens against — ai_usage_events lives alongside dashboards, so
+// this must not reuse that file's fallback URL. Without
+// SUPABASE_SERVICE_ROLE_KEY the admin client is null and this fails open: AI
+// works, just unmetered. Fine for local development, not for production.
 //
 // Not itself a route — no default export, so Vercel only bundles it for
 // api/chat.js.
 
 import { createClient } from '@supabase/supabase-js';
-import { SUPABASE_URL_FALLBACK } from './_supabaseAuth.js';
+
+// Public by design (same value auth.js's `sbData` client uses) — only used
+// as a fallback when SUPABASE_URL isn't set.
+const DATA_SUPABASE_URL_FALLBACK = 'https://fvjlqcrjfbxgqjbbqdaa.supabase.co';
 
 let cachedClient;
 
 function getSupabaseAdmin() {
   if (cachedClient !== undefined) return cachedClient;
   cachedClient = process.env.SUPABASE_SERVICE_ROLE_KEY
-    ? createClient(process.env.SUPABASE_URL || SUPABASE_URL_FALLBACK, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
+    ? createClient(process.env.SUPABASE_URL || DATA_SUPABASE_URL_FALLBACK, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })
     : null;
   return cachedClient;
 }

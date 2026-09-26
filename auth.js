@@ -1,24 +1,71 @@
 // auth.js — ported from synth-sql with minimal changes: Supabase auth +
-// the account modal. Client-side Supabase URL/publishable key hardcoded
-// here (same reasoning as synth-sql — no bundler, this key is meant to be
-// public) — points at synth-bi's own Supabase project, not synth-sql's.
+// the account modal.
+//
+// Auth and data are two different Supabase projects here, so this file
+// creates two clients:
+//   - `sb` signs in against synth-sql's project. Its session is stored in
+//     a cookie shared across *.synth-sql.com (storage-cookie.js), so
+//     signing in on either app signs in on both.
+//   - `sbData` talks to synth-bi's own project, but only for Storage calls
+//     that carry their own one-time authorization (`uploadToSignedUrl`) —
+//     it is never used for an RLS-gated table read/write. Supabase has no
+//     supported way to make one project's Postgres trust a JWT signed by a
+//     different project's Auth (Third-Party Auth is for external identity
+//     providers like Clerk/Auth0, not another Supabase project), so
+//     dashboards/dashboard_tables reads and writes instead go through the
+//     verified api/dashboards/* routes via `authFetch` below. See
+//     BUILD-INSTRUCTIONS.md §7.
 //
 // Account-pitch copy changes for synth-bi's actual perks: save dashboards
-// across devices, AI assistant (Ask + Build mode), and — the one perk that's
-// stricter than synth-sql's — export to Power BI/Tableau requires an account
+// across devices, AI assistant (Ask + Build mode), and the one perk that's
+// stricter than synth-sql's: export to Power BI/Tableau requires an account
 // even though it isn't an AI feature (initial-build.md §7).
 //
 // Dropped from synth-sql's version: premium status, Enterprise join links,
 // and the save-session nudge banner (no paid tier, no orgs — §7).
 
-// Project ref fvjlqcrjfbxgqjbbqdaa — see BUILD-INSTRUCTIONS.md §7 for the
-// full Supabase setup (CLI link command, what's still needed).
-const SUPABASE_URL = 'https://fvjlqcrjfbxgqjbbqdaa.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_KSbBry-RR0L4QnSUT5k8Kg_kLF3PkjX';
+// synth-sql's project — the shared auth source. Same URL/key auth.js ships
+// on synth-sql itself.
+const AUTH_SUPABASE_URL = 'https://gukxpikthryasymfuhgl.supabase.co';
+const AUTH_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1a3hwaWt0aHJ5YXN5bWZ1aGdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwMDAyNTQsImV4cCI6MjEwNDU3NjI1NH0.NFhryLa7MLSvjRGnT75EfxH_4M9tACdbVWOlmaLSXbw';
+
+// synth-bi's own project — Project ref fvjlqcrjfbxgqjbbqdaa. Holds
+// dashboards/tables/Storage; api/dashboards/* is the only thing that reads
+// or writes them with real privileges (see BUILD-INSTRUCTIONS.md §7).
+const DATA_SUPABASE_URL = 'https://fvjlqcrjfbxgqjbbqdaa.supabase.co';
+const DATA_SUPABASE_ANON_KEY = 'sb_publishable_KSbBry-RR0L4QnSUT5k8Kg_kLF3PkjX';
 
 let sb = null;
+let sbData = null;
 if (window.supabase) {
-  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  sb = window.supabase.createClient(AUTH_SUPABASE_URL, AUTH_SUPABASE_ANON_KEY, {
+    auth: { storage: window.sharedAuthStorage },
+  });
+  sbData = window.supabase.createClient(DATA_SUPABASE_URL, DATA_SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+// Attaches the signed-in user's synth-sql access token so api/dashboards/*
+// can verify who's calling (getVerifiedUserId in api/_supabaseAuth.js).
+// Throws the same shape a failed fetch would if there's no session, so
+// callers can catch it alongside network/HTTP errors.
+async function authFetch(url, options = {}) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) throw new Error('Sign in required');
+  const res = await fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      Authorization: `Bearer ${session.access_token}`,
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Request failed (${res.status})`);
+  }
+  return res.json();
 }
 
 async function initAuth() {

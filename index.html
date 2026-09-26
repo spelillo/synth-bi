@@ -11,6 +11,7 @@
     is loaded. Layout/flow spec: BUILD-INSTRUCTIONS.md §4–§5. Styling:
     tokens.css (design tokens) + app.css (shell components).
   -->
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -27,7 +28,7 @@
     </a>
     <div class="nav-right">
       <a href="https://synth-sql.com" target="_blank" rel="noopener" class="btn btn-tertiary btn-sm" title="Query your data with SQL">
-        <i class="ph ph-terminal" aria-hidden="true"></i><span class="nav-label">SQL</span>
+        <img src="/favicon.png" alt="" class="nav-btn-icon"><span class="nav-label">SQL</span>
       </a>
       <button id="header-dashboards-btn" class="btn btn-tertiary btn-sm" onclick="openHome()" hidden>
         <i class="ph ph-squares-four" aria-hidden="true"></i><span class="nav-label">Your dashboards</span>
@@ -440,6 +441,7 @@
   <script src="/csv-parser.js"></script>
   <script src="/json-parser.js"></script>
   <script src="/xlsx-parser.js"></script>
+  <script src="/storage-cookie.js"></script>
   <script src="/auth.js"></script>
   <script src="/checkout.js"></script>
   <script src="/grid.js"></script>

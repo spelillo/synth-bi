@@ -254,3 +254,54 @@ supabase link --project-ref fvjlqcrjfbxgqjbbqdaa
 After linking, `supabase db push` applies `supabase/migrations/` to the real project — no need to hand-construct a direct Postgres connection string for normal migration work. (A direct connection string does exist — `postgresql://postgres:[YOUR-PASSWORD]@db.fvjlqcrjfbxgqjbbqdaa.supabase.co:5432/postgres` — for the rare case a raw `psql` connection is actually needed; the password isn't recorded anywhere in this repo and shouldn't be.)
 
 Agent Mode (`chat.js`'s tool-calling loop) and the Power BI/Tableau theme CSS (`dashboard/src/themes/`) come after this list is working end-to-end, per initial-build.md §10.
+
+### 7.1 Shared auth with synth-sql
+
+Signing in on either synth-sql.com or bi.synth-sql.com now signs the user
+into both. Auth lives entirely in synth-sql's Supabase project
+(`gukxpikthryasymfuhgl`); this project (`fvjlqcrjfbxgqjbbqdaa`) keeps its
+own `dashboards`/`dashboard_tables`/`ai_usage_events`/Storage, addressed
+with that same user id but no longer the source of it.
+
+Supabase's Third-Party Auth (Authentication → Third-Party Auth) only
+trusts external identity providers — Firebase, Clerk, WorkOS, Auth0,
+Amazon Cognito — not another Supabase project's own Auth. There's no
+supported way to make this project's Postgres validate a JWT signed by
+synth-sql's Auth service directly, so RLS can never see who's calling on
+its own. Data access is routed through this project's own API instead,
+gated on a token verified against synth-sql:
+
+- `storage-cookie.js` (both repos, kept identical) — session storage as a
+  cookie scoped to `.synth-sql.com` instead of the client's default
+  `localStorage`, which can't cross the subdomain boundary.
+- `auth.js` — two clients: `sb` signs in against synth-sql's project using
+  the shared cookie storage, and is used for every UI/auth call plus
+  `authFetch` (attaches `sb`'s access token as a bearer header). `sbData`
+  points at this project but is only ever used for `uploadToSignedUrl` —
+  Storage calls that carry their own one-time authorization and don't need
+  RLS to understand who's calling.
+- `api/_supabaseAuth.js` — verifies a request's bearer token against
+  synth-sql's project (that's who issues them now), returning the real
+  user id or null. Never trusts a client-supplied id.
+- `api/_supabaseAdmin.js` + `api/dashboards/` (`index.js`, `[id].js`,
+  `[id]/tables.js`) — the actual data access. Each route verifies the
+  caller via `_supabaseAuth.js`, then reads/writes with the service-role
+  key, filtering every query on that verified user id explicitly (the
+  service role bypasses RLS entirely, so this is what enforces ownership
+  instead — same trust pattern `_aiRateLimit.js` already used for
+  `ai_usage_events`). Table uploads/downloads go through short-lived
+  signed Storage URLs these routes mint, rather than proxying file bytes
+  through the function body (a Vercel function's body limit is far below
+  the bucket's 50MB per-file allowance).
+- `supabase/migrations/20260925210000_drop_auth_users_fk.sql` — drops the
+  `references auth.users(id)` foreign keys on `user_id` columns here,
+  since this project's own `auth.users` table never gets a row for these
+  ids (nobody signs up here anymore). `user_id` stays a plain
+  `uuid default auth.uid()`; the RLS policies are left in place as a
+  harmless backstop even though the service-role routes above bypass them.
+
+**Still needed:**
+- `SUPABASE_SERVICE_ROLE_KEY` must be set in this project's environment
+  (Vercel + `.env.local`) — the same variable `_aiRateLimit.js` already
+  documents needing.
+- `supabase db push` to apply the FK-drop migration above.

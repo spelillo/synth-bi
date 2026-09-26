@@ -24,7 +24,10 @@ create extension if not exists "pgcrypto";
 -- ---------------------------------------------------------------------------
 create table if not exists public.dashboards (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  -- Not FK'd to auth.users: auth lives in synth-sql's Supabase project now
+  -- (see 20260925210000_drop_auth_users_fk.sql), so this project's own
+  -- auth.users table never gets a row for these ids.
+  user_id uuid not null default auth.uid(),
   name text not null default 'Untitled dashboard' check (char_length(name) between 1 and 200),
   tiles jsonb not null default '[]'::jsonb,
   settings jsonb not null default '{}'::jsonb,
@@ -70,7 +73,7 @@ create policy "dashboards: owner full access"
 create table if not exists public.dashboard_tables (
   id uuid primary key default gen_random_uuid(),
   dashboard_id uuid not null references public.dashboards(id) on delete cascade,
-  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  user_id uuid not null default auth.uid(),
   table_name text not null,
   file_name text,
   source_type text check (source_type in ('csv', 'json', 'xlsx')),
@@ -106,7 +109,7 @@ create policy "dashboard_tables: owner full access via dashboard"
 -- ---------------------------------------------------------------------------
 create table if not exists public.ai_usage_events (
   id bigint generated always as identity primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  user_id uuid not null,
   created_at timestamptz not null default now()
 );
 

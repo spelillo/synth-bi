@@ -1186,39 +1186,39 @@ function dashboardRowPayload() {
   };
 }
 
-async function listDashboardFiles(dashboardId) {
-  const prefix = `${currentUser.id}/${dashboardId}`;
-  const { data } = await sb.storage.from(DATA_BUCKET).list(prefix, { limit: 1000 });
-  return (data || []).map(f => `${prefix}/${f.name}`);
-}
-
 async function uploadWorkspaceTables(dashboardId) {
-  // Replace wholesale (same approach as synth-sql): simpler to keep correct,
+  // Replace wholesale (same approach as before): simpler to keep correct,
   // and a renamed or removed table never leaves an orphaned object behind.
-  const { error: delErr } = await sb.from('dashboard_tables').delete().eq('dashboard_id', dashboardId);
-  if (delErr) throw delErr;
-  const old = await listDashboardFiles(dashboardId);
-  if (old.length) await sb.storage.from(DATA_BUCKET).remove(old);
-
+  // api/dashboards/[id]/tables.js drops the old rows and Storage objects
+  // and inserts the new dashboard_tables rows server-side; this function's
+  // job is computing each table's blob and uploading it to the signed URL
+  // that comes back, in the same order the tables were sent.
+  const blobs = [];
+  const meta = [];
   for (const [position, t] of tables.entries()) {
     const result = db.exec(`SELECT * FROM "${t.name}"`);
     const rows = result.length ? result[0].values : [];
-    const blob = await gzipJsonBlob({ columns: t.columns, rows });
-    const path = `${currentUser.id}/${dashboardId}/${encodeURIComponent(t.name)}.json.gz`;
-    const { error: upErr } = await sb.storage.from(DATA_BUCKET).upload(path, blob, { upsert: true, contentType: blob.type });
-    if (upErr) throw upErr;
-    const { error: rowErr } = await sb.from('dashboard_tables').insert({
-      dashboard_id: dashboardId,
+    blobs.push(await gzipJsonBlob({ columns: t.columns, rows }));
+    meta.push({
       table_name: t.name,
       file_name: t.fileName,
       source_type: t.sourceType,
       sheet_name: t.sheetName,
       row_count: t.rowCount,
       columns: t.columnInfo || [],
-      storage_path: path,
       position,
     });
-    if (rowErr) throw rowErr;
+  }
+
+  const { tables: uploads } = await authFetch(`/api/dashboards/${dashboardId}/tables`, {
+    method: 'POST',
+    body: JSON.stringify({ tables: meta }),
+  });
+
+  for (let i = 0; i < uploads.length; i++) {
+    const { path, token } = uploads[i];
+    const { error: upErr } = await sbData.storage.from(DATA_BUCKET).uploadToSignedUrl(path, token, blobs[i], { contentType: blobs[i].type });
+    if (upErr) throw upErr;
   }
 }
 
@@ -1230,12 +1230,10 @@ async function saveWorkspace({ includeTables }) {
 
   let id = currentWorkspaceId;
   if (id) {
-    const { error } = await sb.from('dashboards').update(payload).eq('id', id);
-    if (error) throw error;
+    await authFetch(`/api/dashboards/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
   } else {
-    const { data, error } = await sb.from('dashboards').insert(payload).select('id').single();
-    if (error) throw error;
-    id = data.id;
+    const { id: newId } = await authFetch('/api/dashboards', { method: 'POST', body: JSON.stringify(payload) });
+    id = newId;
     includeTables = true;
   }
   if (includeTables) {
@@ -1293,18 +1291,22 @@ function scheduleDashboardAutosave() {
 
 window.loadCloudDashboard = async function(dashboardId) {
   if (!sb || !currentUser || !SQL) return;
-  const { data: dash, error } = await sb.from('dashboards').select('*').eq('id', dashboardId).single();
-  if (error) { setHomeUploadMessage(`Couldn't open that dashboard: ${error.message}`, true); return; }
-  const { data: tableRows, error: tErr } = await sb.from('dashboard_tables').select('*').eq('dashboard_id', dashboardId).order('position');
-  if (tErr) { setHomeUploadMessage(`Couldn't open that dashboard: ${tErr.message}`, true); return; }
+  let dash, tableRows;
+  try {
+    ({ dashboard: dash, tables: tableRows } = await authFetch(`/api/dashboards/${dashboardId}`));
+  } catch (err) {
+    setHomeUploadMessage(`Couldn't open that dashboard: ${err.message}`, true);
+    return;
+  }
 
   showLoadingOverlay();
   try {
     addLoadProgressUnits(Math.max(1, (tableRows || []).reduce((sum, t) => sum + (t.row_count || 0), 0)));
     const loadedTables = [];
     for (const t of tableRows || []) {
-      const { data: blob, error: dlErr } = await sb.storage.from(DATA_BUCKET).download(t.storage_path);
-      if (dlErr) throw dlErr;
+      const dlRes = await fetch(t.signedUrl);
+      if (!dlRes.ok) throw new Error(`Couldn't download ${t.table_name}`);
+      const blob = await dlRes.blob();
       loadedTables.push({ meta: t, data: await readJsonBlob(blob) });
     }
 
@@ -1389,10 +1391,7 @@ async function renderHomeDashboards() {
   body.innerHTML = '<div class="dash-card is-loading"></div><div class="dash-card is-loading"></div>';
   let rows, error;
   try {
-    ({ data: rows, error } = await sb
-      .from('dashboards')
-      .select('id, name, tiles, thumbnail, updated_at, dashboard_tables(table_name, row_count)')
-      .order('updated_at', { ascending: false }));
+    ({ dashboards: rows } = await authFetch('/api/dashboards'));
   } catch (err) {
     error = err;
   }
@@ -1483,12 +1482,10 @@ window.confirmDeleteWorkspace = async function() {
   closeDeleteWorkspaceModal();
   if (!id || !sb || !currentUser) return;
   try {
-    // Storage objects aren't covered by the row's ON DELETE CASCADE —
-    // remove them explicitly or they'd sit in the bucket as orphans.
-    const files = await listDashboardFiles(id);
-    if (files.length) await sb.storage.from(DATA_BUCKET).remove(files);
-    const { error } = await sb.from('dashboards').delete().eq('id', id);
-    if (error) throw error;
+    // Storage cleanup happens server-side (api/dashboards/[id].js) — it
+    // isn't covered by the row's ON DELETE CASCADE, so it has to be done
+    // explicitly or objects would sit in the bucket as orphans.
+    await authFetch(`/api/dashboards/${id}`, { method: 'DELETE' });
     if (currentWorkspaceId === id) {
       currentWorkspaceId = null;
       tablesDirty = true;
@@ -1508,8 +1505,12 @@ async function renameDashboard(id, name) {
     document.getElementById('workspace-name').textContent = clean;
   }
   if (!id || !sb || !currentUser) return true;
-  const { error } = await sb.from('dashboards').update({ name: clean }).eq('id', id);
-  if (error) { setFileInfo(`Couldn't rename: ${error.message}`, true); return false; }
+  try {
+    await authFetch(`/api/dashboards/${id}`, { method: 'PATCH', body: JSON.stringify({ name: clean }) });
+  } catch (err) {
+    setFileInfo(`Couldn't rename: ${err.message}`, true);
+    return false;
+  }
   return true;
 }
 

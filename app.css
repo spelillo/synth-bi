@@ -60,6 +60,7 @@ a { color: var(--color-ink); }
 .btn:active:not(:disabled) { transform: scale(0.98); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn .ph { font-size: 1.15em; }
+.nav-btn-icon { width: 15px; height: 15px; vertical-align: -3px; }
 
 .btn-primary { background: var(--color-primary); color: var(--color-on-primary); }
 .btn-primary:hover:not(:disabled) { background: var(--color-primary-active); }
