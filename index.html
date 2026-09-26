@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Synth-BI — turn any file into a dashboard</title>
-  <meta name="description" content="Upload a CSV, JSON, or Excel file and build a dashboard in your browser — by hand or with AI — then export it to Power BI or Tableau.">
+  <title>Synth-BI: turn any file into a dashboard</title>
+  <meta name="description" content="Upload a CSV, JSON, or Excel file and build a dashboard in your browser, by hand or with AI, then export it to Power BI or Tableau.">
   <!--
     Structure mirrors synth-sql's synth.html: home-view (saved dashboards +
     drop zone) swaps for app-view (header, tab bar, tab panels) once a file
@@ -23,8 +23,7 @@
 <body>
   <header class="nav-bar">
     <a href="/" class="brand" title="Synth-BI home">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <span class="brand-word">synth</span><span class="brand-bi">BI</span>
+      <img src="/synth-bi-logo.png" alt="Synth BI" class="brand-logo">
     </a>
     <div class="nav-right">
       <a href="https://synth-sql.com" target="_blank" rel="noopener" class="btn btn-tertiary btn-sm" title="Query your data with SQL">
@@ -63,11 +62,11 @@
       <section class="home-upload hero-band" aria-labelledby="home-upload-title">
         <div id="home-dropzone" class="home-dropzone" tabindex="0" role="button" aria-describedby="home-upload-sub">
           <h1 id="home-upload-title" class="display-hero">Turn any file into a dashboard</h1>
-          <p id="home-upload-sub" class="home-dropzone-sub">Drop a <strong>CSV</strong>, <strong>JSON</strong>, or <strong>Excel</strong> file here. It loads into a real database right in this tab, and never leaves your browser unless you choose to save it.</p>
+          <p id="home-upload-sub" class="home-dropzone-sub">Drop a <strong>CSV</strong>, <strong>JSON</strong>, or <strong>Excel</strong> file. It loads into a real database in your browser, and never leaves unless you save it.</p>
           <button type="button" class="btn btn-primary btn-lg" id="home-dropzone-btn">
             <i class="ph ph-upload-simple" aria-hidden="true"></i> Choose a file
           </button>
-          <p class="home-dropzone-formats">.csv · .json · .ndjson · .xlsx — Excel workbooks load every sheet as its own table</p>
+          <p class="home-dropzone-formats">CSV, JSON, NDJSON, and XLSX. Excel workbooks load every sheet as its own table.</p>
           <p id="home-upload-message" class="home-upload-message" role="status" aria-live="polite"></p>
         </div>
       </section>
@@ -82,7 +81,7 @@
             </li>
             <li>
               <span class="home-flow-num">2</span>
-              <div><strong>Build tiles, by hand or with AI</strong><span>Pick a table, a group-by, and a measure — or write SQL. Signed in, just ask the assistant.</span></div>
+              <div><strong>Build tiles, by hand or with AI</strong><span>Pick a table, a group-by, and a measure, or write SQL. Signed in, just ask the assistant.</span></div>
             </li>
             <li>
               <span class="home-flow-num">3</span>
@@ -389,7 +388,7 @@
       <div class="help-sections">
         <section>
           <h3>Your data stays in this tab</h3>
-          <p>Every file loads into a SQLite database running inside this browser tab. Nothing is sent anywhere unless you sign in and choose to save or use the AI assistant — and even then the assistant only ever sees column names and types, never your rows.</p>
+          <p>Every file loads into a SQLite database running inside this browser tab. Nothing is sent anywhere unless you sign in and choose to save or use the AI assistant. Even then, the assistant only ever sees column names and types, never your rows.</p>
         </section>
         <section>
           <h3>Tables</h3>
@@ -397,7 +396,7 @@
         </section>
         <section>
           <h3>Building tiles</h3>
-          <p><strong>Add tile</strong> opens the tile editor. <strong>Visual</strong> mode builds the query for you from a table, a group-by column, and a measure — the SQL it writes is always shown underneath. <strong>SQL</strong> mode lets you write the query yourself. Either way, pick a chart type and add it to the dashboard. Drag a tile by its title bar to move it, and from its corner to resize it.</p>
+          <p><strong>Add tile</strong> opens the tile editor. <strong>Visual</strong> mode builds the query for you from a table, a group-by column, and a measure, and the SQL it writes is always shown underneath. <strong>SQL</strong> mode lets you write the query yourself. Either way, pick a chart type and add it to the dashboard. Drag a tile by its title bar to move it, and from its corner to resize it.</p>
         </section>
         <section>
           <h3>Relationships</h3>

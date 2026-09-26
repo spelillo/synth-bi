@@ -100,19 +100,26 @@ a { color: var(--color-ink); }
 
 .section-title {
   margin: 0 0 var(--space-lg);
-  font-size: 20px;
-  line-height: 28px;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 24px;
+  line-height: 30px;
   font-weight: 600;
   letter-spacing: -0.4px;
 }
 
+/* Degular Display isn't licensed in this project — Inter is the hybrid
+   doc's own documented fallback (Synth-BI-Hybrid-Design.md), used here at
+   the lighter 500 weight the doc calls for instead of Wise's 900. Scoped
+   as an explicit font-family, not a --font-display token change, since
+   other screens (account modal, marketing pages) still load Manrope at
+   800 only and would fall back to a synthesized fake-bold otherwise. */
 .display-hero {
   margin: 0;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(44px, 5.4vw, 72px);
-  line-height: 0.9;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  font-size: clamp(36px, 5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
   color: var(--color-ink);
 }
 
@@ -153,12 +160,7 @@ a { color: var(--color-ink); }
   font-weight: 600;
 }
 .brand { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; color: var(--color-ink); }
-.brand-mark {
-  width: 22px; height: 22px;
-  border-radius: 7px;
-  background: var(--color-primary);
-  box-shadow: inset -7px -7px 0 0 var(--color-ink-deep);
-}
+.brand-logo { height: 30px; width: auto; display: block; }
 .brand-word { font-family: var(--font-display); font-weight: 800; font-size: 22px; letter-spacing: -0.03em; }
 .brand-bi {
   display: inline-block;
