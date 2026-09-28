@@ -6,8 +6,9 @@
 // Charts are already SVG (shared/chart-engine.js), so they're embedded
 // as-is, positioned from the live grid. Text boxes are re-set as SVG text,
 // wrapped with canvas text metrics at the box's own font and width. Web
-// fonts can't load inside an SVG drawn to a canvas, so the image falls back
-// to the system sans for text — layout and colors are exact.
+// fonts can't load inside an SVG drawn to a canvas, so text in a web font
+// falls back to the system sans (system faces like Georgia still render) —
+// layout and colors are exact.
 
 const escXml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -86,7 +87,11 @@ export function composeDashboardSvg(gridEl, { background = '#e8ebe6', padding = 
           const bs = getComputedStyle(block);
           const fontSize = parseFloat(bs.fontSize);
           const lineH = parseFloat(bs.lineHeight) || fontSize * 1.25;
-          measure.font = `${bs.fontStyle} ${bs.fontWeight} ${fontSize}px Inter, Helvetica, Arial, sans-serif`;
+          // The box's own face first (system fonts like Georgia do render),
+          // then the sans fallback for web fonts the image can't load.
+          const family = `${bs.fontFamily}, Helvetica, Arial, sans-serif`;
+          const deco = /underline|line-through/.test(bs.textDecorationLine) ? ` text-decoration="${bs.textDecorationLine}"` : '';
+          measure.font = `${bs.fontStyle} ${bs.fontWeight} ${fontSize}px ${family}`;
           const bullet = block.tagName === 'LI';
           const lines = wrapLines(measure, block.textContent, br.w - (bullet ? 4 : 0));
           const anchor = bs.textAlign === 'center' ? 'middle' : bs.textAlign === 'right' ? 'end' : 'start';
@@ -94,7 +99,7 @@ export function composeDashboardSvg(gridEl, { background = '#e8ebe6', padding = 
           lines.forEach((ln, i) => {
             const y = br.y + lineH * i + fontSize * 0.95;
             if (bullet && i === 0) body += `<circle cx="${br.x - fontSize * 0.55}" cy="${y - fontSize * 0.32}" r="${Math.max(2, fontSize * 0.12)}" fill="${bs.color}" />`;
-            body += `<text x="${x}" y="${y}" font-size="${fontSize}" font-weight="${bs.fontWeight}" font-style="${bs.fontStyle}" fill="${bs.color}" text-anchor="${anchor}" font-family="Inter, Helvetica, Arial, sans-serif">${escXml(ln)}</text>`;
+            body += `<text x="${x}" y="${y}" font-size="${fontSize}" font-weight="${bs.fontWeight}" font-style="${bs.fontStyle}" fill="${bs.color}" text-anchor="${anchor}"${deco} font-family="${escXml(family)}">${escXml(ln)}</text>`;
           });
         });
       }

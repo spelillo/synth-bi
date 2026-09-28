@@ -27,10 +27,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   const authReady = typeof initAuth === 'function' ? initAuth() : Promise.resolve();
   try {
     SQL = await initDB();
-    setAppStatus('ready');
   } catch (err) {
     console.error('sql.js failed to load:', err);
-    setAppStatus('error');
     setHomeUploadMessage("Couldn't load the in-browser database engine. Check your connection and reload.", true);
     return;
   }
@@ -50,13 +48,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   }
 });
-
-function setAppStatus(state) {
-  const el = document.getElementById('status');
-  if (!el) return;
-  el.dataset.state = state;
-  el.textContent = state === 'ready' ? 'Ready' : state === 'error' ? 'Offline' : 'Starting…';
-}
 
 // ---- Workspace dirty/synced state ----
 // Whether the in-browser workspace (tables + tiles) exactly matches what's

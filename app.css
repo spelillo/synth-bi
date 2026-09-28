@@ -178,23 +178,6 @@ a { color: var(--color-ink); }
   vertical-align: 3px;
 }
 .nav-right { display: flex; align-items: center; gap: var(--space-sm); }
-.status-dot {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-mute);
-  font-size: 12px;
-  font-weight: 500;
-  padding-left: var(--space-sm);
-}
-.status-dot::before {
-  content: '';
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--color-warning);
-}
-.status-dot[data-state="ready"]::before { background: var(--color-positive); }
-.status-dot[data-state="error"]::before { background: var(--color-negative); }
 #sign-in-btn { max-width: 240px; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- Home view ---------- */
@@ -562,7 +545,6 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   .nav-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
   #header-dashboards-btn { padding: 6px 10px; }
   #sign-in-btn { max-width: 160px; }
-  .status-dot { display: none; }
   .home-grid { grid-template-columns: 1fr; padding: var(--space-lg); gap: var(--space-lg); }
   .home-dropzone { padding: var(--space-xl); min-height: 0; }
   .home-dropzone-sub { font-size: 17px; line-height: 26px; }
