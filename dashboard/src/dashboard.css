@@ -405,13 +405,15 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
   height: 100%;
   display: flex;
   flex-direction: column;
+  border: 1px solid var(--tile-border);
   border-radius: var(--tile-radius);
   padding: var(--space-sm) var(--space-md);
   line-height: 1.25;
   overflow: hidden;
 }
-.text-tile.is-transparent { outline: 1px dashed transparent; }
-.react-grid-item:hover .text-tile.is-transparent { outline-color: #b9beb5; }
+/* Outside of editing the whole box is a drag handle, like a chart's header. */
+.text-tile.tile-drag-handle { cursor: grab; user-select: none; }
+.react-draggable-dragging .text-tile.tile-drag-handle { cursor: grabbing; }
 .text-tile.size-xl, .text-tile.size-hero { font-family: var(--font-display); letter-spacing: -0.02em; }
 .text-tile.size-hero { line-height: 1; }
 .text-tile-content { overflow: hidden; }
