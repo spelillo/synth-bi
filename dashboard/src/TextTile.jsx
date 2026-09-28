@@ -162,6 +162,9 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
       <div
         className="text-tile-toolbar"
         onMouseDown={e => {
+          // The grip is the drag handle: its mousedown has to reach the grid
+          // item, where react-grid-layout starts the drag.
+          if (e.target.closest('.tile-drag-handle')) return;
           e.stopPropagation();
           // Keep the caret in the text while formatting (selects and the
           // color picker still need their default so they can open).
@@ -206,7 +209,7 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
         )}
       </div>
 
-      <div className={`text-tile size-${st.size}${family ? ' has-font' : ''}${st.background === 'transparent' ? ' is-transparent' : ''}${editing ? ' is-editing' : ''}`} style={boxStyle}>
+      <div className={`text-tile${editing ? '' : ' tile-drag-handle'} size-${st.size}${family ? ' has-font' : ''}${st.background === 'transparent' ? ' is-transparent' : ''}${editing ? ' is-editing' : ''}`} style={boxStyle}>
       {editing ? (
         <textarea
           ref={areaRef}

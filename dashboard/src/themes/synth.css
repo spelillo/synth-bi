@@ -15,7 +15,9 @@
   --dash-bg: var(--color-canvas-soft);
   --tile-bg: var(--color-canvas);
   --tile-radius: var(--radius-xl);
-  --tile-border: transparent;
+  /* A thin hairline so every tile (charts and text boxes) reads as its own
+     card; the per-tile Outline toggle swaps in a stronger ink border. */
+  --tile-border: rgba(14, 15, 12, 0.12);
   --tile-shadow: none;
   --tile-header-bg: transparent;
   --tile-header-border: transparent;
