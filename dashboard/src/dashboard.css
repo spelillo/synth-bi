@@ -331,6 +331,7 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
   overflow: auto;
   border: 0;
 }
+.sql-editor-highlight code { font: inherit; line-height: inherit; background: none; padding: 0; }
 .sql-editor-highlight { position: absolute; inset: 0; pointer-events: none; color: var(--color-ink); scrollbar-width: none; }
 .sql-editor-highlight::-webkit-scrollbar { display: none; }
 .sql-editor-input {
@@ -347,7 +348,7 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
 .sql-editor-input::selection { background: rgba(159, 232, 112, 0.45); color: transparent; }
 .sql-editor:focus-within { outline: 2px solid var(--color-ink); outline-offset: 1px; }
 .sql-editor.is-readonly:focus-within { outline: none; }
-.sql-tok-keyword { color: #163300; font-weight: 600; }
+.sql-tok-keyword { color: #163300; font-weight: 500; }
 .sql-tok-string { color: #b86700; }
 .sql-tok-ident { color: #2a78d6; }
 .sql-tok-number { color: #a72027; }
