@@ -205,6 +205,13 @@ window.synthBridge = {
     if (typeof sendAskMessage !== 'function') return Promise.reject(new Error('The AI assistant isn\'t available yet.'));
     return sendAskMessage(message, context);
   },
+  // Export: per-tile "how to rebuild in Power BI / Tableau" text from the
+  // model (schema + SQL only). Resolves to { [tileId]: guide }; tiles the
+  // model couldn't cover are simply missing.
+  generateRebuildGuide(tileList) {
+    if (typeof generateRebuildGuide !== 'function') return Promise.resolve({});
+    return generateRebuildGuide(tileList);
+  },
   clearAiSession() {
     chatHistory = [];
     if (typeof onDashboardTilesChanged === 'function') onDashboardTilesChanged();

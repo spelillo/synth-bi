@@ -4,11 +4,13 @@
 //      tables, defaulted to everything the dashboard uses.
 //   2. Sign-in gate (Lite Mode only) — inline, not a redirect, so the
 //      selection isn't lost; signing in flips straight to step 3.
-//   3. Download — one .zip: an Excel Table per table (Power BI's "Get Data
-//      -> Excel workbook"), a .tds per table next to its workbook (Tableau),
-//      the dashboard image, a README with the how-to-open steps, and a tile
-//      list with each tile's SQL for rebuilding visuals. An image-only
-//      export downloads the .png directly.
+//   3. Download — one .zip: the dashboard image, an Excel workbook of each
+//      visual's data (viz-data/), the source tables as Excel Tables (Power BI's
+//      "Get Data -> Excel workbook") with a .tds per table (Tableau), a
+//      README.md, and rebuild-guide.md: what each visual shows, where its data
+//      comes from, and how to recreate it in Power BI and Tableau (drafted by
+//      the AI from tile specs + SQL, never row values; a template fills in if
+//      the AI is unavailable). An image-only export downloads the .png.
 // The destination-preview step of §5.6 arrives with the v1.1 preview skins.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -17,54 +19,12 @@ import { bridge, useCurrentUser } from './bridge.js';
 import { buildAllTds } from './lib/tdsExport.js';
 import { renderDashboardPng } from './lib/dashboardImage.js';
 import { tileDisplayTitle } from './Tile.jsx';
+import { buildVizTables, tilesForGuide, buildRebuildGuide, buildReadme } from './lib/rebuildGuide.js';
 
 function tablesUsedBy(tile, tableNames) {
   if (!tile.sql) return [];
   const sql = tile.sql.replace(/'(?:[^']|'')*'/g, "''");
   return tableNames.filter(name => new RegExp(`\\b(from|join)\\s+"?${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?(?![A-Za-z0-9_])`, 'i').test(sql));
-}
-
-function buildReadme({ dashboardName, tables, excel, tableau, image }) {
-  const lines = [
-    `${dashboardName} — exported from Synth-BI`,
-    '='.repeat(Math.min(72, dashboardName.length + 26)),
-    '',
-  ];
-  if (excel || tableau) {
-    lines.push('Files', '-----');
-    tables.forEach(t => lines.push(`  ${t.name}.xlsx   ${t.rowCount.toLocaleString()} rows, one Excel Table named "${t.name}"${tableau ? `\n  ${t.name}.tds    Tableau data source for ${t.name}.xlsx` : ''}`));
-    if (image) lines.push('  dashboard.png   the dashboard as it looked when exported');
-    lines.push('  tiles.txt       every tile with its chart type and SQL', '');
-  }
-  if (excel) {
-    lines.push('Power BI', '--------',
-      '1. Home > Get Data > Excel workbook, then pick one of the .xlsx files.',
-      '2. In the Navigator, tick the Table (not the sheet) and click Load. Columns arrive typed: numbers as numbers, dates as dates.',
-      '3. Repeat for each table, then connect them in Model view if they relate.',
-      '4. Rebuild each visual from tiles.txt: same fields, same chart type.', '');
-  }
-  if (tableau) {
-    lines.push('Tableau', '-------',
-      '1. Keep each .tds in the same folder as its .xlsx.',
-      '2. Double-click a .tds file: Tableau opens already connected, with field names, types, and measures/dimensions set.',
-      '   (If Tableau asks where the data file is, point it at the matching .xlsx in this folder.)',
-      '3. Rebuild each visual from tiles.txt on a new worksheet.', '');
-  }
-  lines.push('Your data never left your browser: these files were generated on your computer.');
-  return lines.join('\n');
-}
-
-function buildTilesText(tiles) {
-  const charts = tiles.filter(t => t.kind !== 'text');
-  return charts.map((t, i) => {
-    const spec = t.chartSpec || {};
-    const fields = [
-      spec.category ? `category: ${spec.category}` : null,
-      spec.values && spec.values.length ? `values: ${spec.values.join(', ')}` : null,
-      spec.seriesBy ? `split by: ${spec.seriesBy}` : null,
-    ].filter(Boolean).join(' · ');
-    return `${i + 1}. ${tileDisplayTitle(t)}\n   Chart: ${spec.type || 'auto'}${fields ? ` (${fields})` : ''}\n   SQL:\n${String(t.sql).split('\n').map(l => `     ${l}`).join('\n')}\n`;
-  }).join('\n');
 }
 
 export default function ExportModal({ tiles, schema, onClose }) {
@@ -79,7 +39,7 @@ export default function ExportModal({ tiles, schema, onClose }) {
     const used = tableNames.filter(n => usage[n] > 0);
     return new Set(used.length ? used : tableNames);
   });
-  const [outputs, setOutputs] = useState({ excel: true, tableau: true, image: true });
+  const [outputs, setOutputs] = useState({ excel: true, tableau: true, image: true, guide: true });
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -117,15 +77,28 @@ export default function ExportModal({ tiles, schema, onClose }) {
       }
       const chosen = schema.filter(t => selected.has(t.name));
       const dashboardName = (document.getElementById('workspace-name') || {}).textContent || 'Dashboard';
+      const chartTiles = tiles.filter(t => t.kind !== 'text' && t.sql);
+      const titleOf = tileDisplayTitle;
+      setStatus('Collecting each visual\'s data…');
+      const viz = buildVizTables(chartTiles, titleOf, (sql, opts) => bridge.runQuery(sql, opts));
+      const items = tilesForGuide(chartTiles, titleOf);
+      let guides = {};
+      if (items.length && outputs.guide) {
+        setStatus('Writing the Power BI and Tableau rebuild guide…');
+        try { guides = await bridge.generateRebuildGuide(items); } catch { guides = {}; }
+      }
+      const aiUsed = Object.keys(guides).length > 0;
+      const readmeArgs = { dashboardName, tables: chosen, viz, image: !!image, tableau: outputs.tableau, textTiles: tiles.filter(t => t.kind === 'text').length };
       const name = await bridge.exportDashboard({
         tableNames: chosen.map(t => t.name),
         excel: outputs.excel,
         tableau: outputs.tableau,
         tdsFiles: outputs.tableau ? buildAllTds(chosen) : [],
         image,
+        vizTables: viz.filter(v => !v.error),
         files: wantsData ? [
-          { path: 'README.txt', text: buildReadme({ dashboardName, tables: chosen, ...outputs }) },
-          { path: 'tiles.txt', text: buildTilesText(tiles) },
+          { path: 'README.md', text: buildReadme(readmeArgs) },
+          { path: 'rebuild-guide.md', text: buildRebuildGuide({ dashboardName, items, viz, guides, aiUsed }) },
         ] : [],
         onStatus: setStatus,
       });
@@ -162,8 +135,9 @@ export default function ExportModal({ tiles, schema, onClose }) {
           <section>
             <h3 className="export-step">What to include</h3>
             <div className="export-options">
-              <Option id="excel" icon="ph-file-xls" title="Power BI" body="An Excel Table per table, with typed numbers and dates, ready for Get Data → Excel workbook." />
+              <Option id="excel" icon="ph-file-xls" title="Power BI" body="An Excel workbook of each visual's data plus your source tables, typed and ready for Get Data → Excel workbook." />
               <Option id="tableau" icon="ph-database" title="Tableau" body="A .tds data source per table: double-click it to open Tableau already connected and typed." />
+              <Option id="guide" icon="ph-list-checks" title="Rebuild guide (AI)" body="Step-by-step instructions to recreate each visual in Power BI and Tableau. Uses one AI request per few tiles; only tile settings and SQL are sent, never your data." />
               <Option id="image" icon="ph-file-image" title="Dashboard image" body="A PNG of the canvas as it looks now, for slides and docs." />
             </div>
           </section>
@@ -180,7 +154,7 @@ export default function ExportModal({ tiles, schema, onClose }) {
                   </label>
                 ))}
               </div>
-              <p className="field-hint">Visuals are rebuilt inside Power BI and Tableau from the data — the bundle's tiles.txt lists every tile's fields and SQL, and the image shows the layout.</p>
+              <p className="field-hint">Every visual's own data always comes along in viz-data/. These are the full source tables behind them; rebuild-guide.md explains how to recreate each visual.</p>
             </section>
           )}
         </div>
