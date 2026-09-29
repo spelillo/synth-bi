@@ -154,6 +154,9 @@ def build_export_zip(payload_json):
     with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
         for table in p.get("tables", []):
             z.writestr(f"{folder}/{table['name']}.xlsx", build_table_xlsx(table))
+        # One workbook per visual: exactly the rows that tile plots.
+        for v in p.get("vizTables", []):
+            z.writestr(f"{folder}/viz-data/{v['fileName']}", build_table_xlsx({"name": v["tableName"], "columns": v["columns"], "rows": v["rows"]}))
         for f in p.get("files", []):
             z.writestr(f"{folder}/{f['path']}", f["text"])
         for f in p.get("binaries", []):

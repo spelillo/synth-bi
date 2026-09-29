@@ -1708,7 +1708,8 @@ function exportSlug() {
 }
 
 // options: { tableNames, excel, tableau, tdsFiles: [{ fileName, content }],
-// image: Blob|null, files: [{ path, text }], onStatus }. Resolves with the
+// image: Blob|null, vizTables: [{ fileName, tableName, columns, rows }],
+// files: [{ path, text }], onStatus }. Resolves with the
 // downloaded file name.
 async function exportDashboard(options) {
   if (!canUseFeature('export')) {
@@ -1745,7 +1746,7 @@ async function exportDashboard(options) {
   onStatus('Building your files…');
   await yieldToUI();
   const build = py.globals.get('build_export_zip');
-  const result = build(JSON.stringify({ folder: slug, tables: payloadTables, files, binaries }));
+  const result = build(JSON.stringify({ folder: slug, tables: payloadTables, vizTables: options.vizTables || [], files, binaries }));
   const bytes = result.toJs();
   result.destroy();
   build.destroy();

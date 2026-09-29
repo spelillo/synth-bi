@@ -322,3 +322,51 @@ async function sendAskMessage(message, context = {}) {
   if (chatHistory.length > 60) chatHistory = chatHistory.slice(-60);
   return reply;
 }
+
+// ---- Export: how to rebuild each visual in Power BI and Tableau ----
+// Called by the export modal (bridge.generateRebuildGuide). Same boundary as
+// everything else here: the model sees the schema and each tile's chart spec
+// + SQL, never row values. Tiles go in small batches so every reply fits the
+// completion cap; a batch that fails is simply left out and the caller fills
+// it from its built-in template.
+
+const GUIDE_BATCH = 4;
+
+function rebuildGuidePrompt(tileList) {
+  return `You write "how to rebuild this Synth-BI visual" instructions for people moving a dashboard into Power BI and Tableau. You only see schema, never row values.
+
+${schemaPromptText()}
+${typeof relationshipHintsText === 'function' ? relationshipHintsText() : ''}
+For each tile below, work out what the visual shows, which source tables/columns feed it, and how to recreate it. The exported bundle has, per tile, an Excel workbook holding the tile's query result (columns exactly as named in the SQL) and one workbook per source table.
+
+Tiles:
+${tileList.map(t => `- id ${t.id}: title "${t.title}"; chart type ${t.type}; category ${t.category || 'none'}; values ${(t.values || []).join(', ') || 'none'}; split by ${t.seriesBy || 'none'}; SQL: ${String(t.sql).replace(/\s+/g, ' ').slice(0, 900)}`).join('\n')}
+
+Reply with ONLY a JSON object (no prose, no code fence):
+{"tiles":[{
+  "id": "the tile id, unchanged",
+  "summary": "one plain-English sentence: what this visual shows",
+  "sources": ["source table names it reads from"],
+  "logic": "1-2 sentences in plain English: filters, grouping, aggregation, joins, derived fields. Mention date grouping (month/year) if any.",
+  "powerBi": { "visual": "exact Power BI visual name, e.g. Clustered column chart", "steps": ["3-6 short numbered-step sentences: which fields go in which well (Axis, Legend, Values, Columns, Rows...), the aggregation, and any DAX measure or Power Query step needed, with the DAX written out"] },
+  "tableau": { "mark": "chart type / Marks card choice, e.g. Bar, Line, Pie", "steps": ["3-6 short sentences: what goes on Columns, Rows, Color, Size, Label, Filters; any calculated field written out in Tableau syntax"] }
+}]}
+Rules: translate SQLite SQL into DAX and Tableau calculations (SUM, AVERAGE, DISTINCTCOUNT / COUNTD, date truncation) rather than pasting SQL; note when a CAST is unnecessary because the export already types columns; use real Power BI / Tableau names for visuals and fields wells. Keep each step under 30 words.`;
+}
+
+async function generateRebuildGuide(tileList) {
+  if (!currentUser) throw new Error('Please sign in to use the AI assistant.');
+  const out = {};
+  for (let i = 0; i < tileList.length; i += GUIDE_BATCH) {
+    const batch = tileList.slice(i, i + GUIDE_BATCH);
+    try {
+      const text = await callAssistant([{ role: 'system', content: rebuildGuidePrompt(batch) }, { role: 'user', content: 'Write the rebuild guide for these tiles.' }], { json: true, temperature: 0.2 });
+      const parsed = parseJsonReply(text);
+      (Array.isArray(parsed.tiles) ? parsed.tiles : []).forEach(g => { if (g && g.id !== undefined) out[String(g.id)] = g; });
+    } catch (err) {
+      // Rate limit or sign-in problems won't get better on the next batch.
+      if (/sign in|session expired|AI messages/i.test(err.message || '')) break;
+    }
+  }
+  return out;
+}
