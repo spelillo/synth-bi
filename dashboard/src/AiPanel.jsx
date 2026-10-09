@@ -15,11 +15,12 @@
 // Disabled entirely in Lite Mode (no sign-in) — see bridge.js's
 // getCurrentUser()/requireSignIn().
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { bridge, useAiMode, useCurrentUser, useSchema } from './bridge.js';
 import Segmented from './Segmented.jsx';
 import { splitReply, highlightSQL } from './lib/markdown.js';
 import { CHART_TYPES } from '../../shared/chart-engine.js';
+import useScrollEdges from './lib/useScrollEdges.js';
 
 const MODE_HINT = {
   ask: 'Ask about your data, your dashboard, or how to build a chart. Numbers are computed here in your browser.',
@@ -134,7 +135,7 @@ function DraftCard({ turn, onReview, onAdd }) {
   );
 }
 
-export default function AiPanel({ onCollapse, onReviewDraft, onAddDraft, onAddText, onRemoveTile }) {
+export default function AiPanel({ motionState = 'open', onCollapse, onReviewDraft, onAddDraft, onAddText, onRemoveTile }) {
   const user = useCurrentUser();
   const aiMode = useAiMode();
   const { schema } = useSchema();
@@ -142,6 +143,8 @@ export default function AiPanel({ onCollapse, onReviewDraft, onAddDraft, onAddTe
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
   const listRef = useRef(null);
+  const edgesRef = useScrollEdges();
+  const transcriptRef = useCallback(el => { listRef.current = el; edgesRef(el); }, [edgesRef]);
   const inputRef = useRef(null);
   const suggestions = useMemo(() => suggestionsFor(aiMode, schema), [aiMode, schema]);
 
@@ -230,7 +233,7 @@ export default function AiPanel({ onCollapse, onReviewDraft, onAddDraft, onAddTe
 
   if (!user) {
     return (
-      <aside className="ai-panel" aria-label="AI dashboard assistant">
+      <aside className="ai-panel" aria-label="AI dashboard assistant" data-state={motionState}>
         {header}
         <div className="ai-locked">
           <div className="ai-locked-card">
@@ -249,11 +252,11 @@ export default function AiPanel({ onCollapse, onReviewDraft, onAddDraft, onAddTe
   }
 
   return (
-    <aside className="ai-panel" aria-label="AI dashboard assistant">
+    <aside className="ai-panel" aria-label="AI dashboard assistant" data-state={motionState}>
       {header}
       <p className="ai-mode-hint">{MODE_HINT[aiMode]}</p>
 
-      <div className="ai-transcript" ref={listRef} aria-live="polite">
+      <div className="ai-transcript" ref={transcriptRef} aria-live="polite">
         {turns.length === 0 ? (
           <div className="ai-empty">
             <p className="ai-empty-title">{aiMode === 'ask' ? 'Ask anything about your data' : 'What should we build?'}</p>

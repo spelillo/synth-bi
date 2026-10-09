@@ -13,6 +13,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { isDarkColor } from './Tile.jsx';
+import { usePresence } from './lib/motion.js';
+import { leading, tracking } from './lib/type.js';
 
 export const TEXT_SIZES = [
   { id: 'sm', label: 'Small', px: 13 },
@@ -102,6 +104,10 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
   const [editing, setEditing] = useState(autoEdit);
   const [draft, setDraft] = useState(tile.text || '');
   const [panel, setPanel] = useState(null); // 'color' | 'fill' | null
+  const shownPanel = useRef(null);
+  if (panel) shownPanel.current = panel;
+  const panelPresence = usePresence(!!panel, 200);
+  const [panelOrigin, setPanelOrigin] = useState('50%');
   const [above, setAbove] = useState(false);
   const areaRef = useRef(null);
   const frameRef = useRef(null);
@@ -113,7 +119,10 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
     if (!el) return;
     const wrap = el.closest('.dash-grid-wrap');
     const bar = el.querySelector('.text-tile-toolbar');
-    const room = el.getBoundingClientRect().top - (wrap ? wrap.getBoundingClientRect().top : 0);
+    // The canvas header floats over the top of the scroll area.
+    const header = wrap && wrap.querySelector('.dash-header');
+    const top = wrap ? wrap.getBoundingClientRect().top + (header ? header.offsetHeight : 0) : 0;
+    const room = el.getBoundingClientRect().top - top;
     setAbove(room >= (bar ? bar.offsetHeight : 36) + 8);
   };
 
@@ -133,6 +142,13 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
     if (editing) requestAnimationFrame(() => areaRef.current && areaRef.current.focus());
   };
 
+  // The swatch popover grows out of the button that opened it.
+  const anchorPanel = e => {
+    const btn = e.currentTarget;
+    const bar = btn.closest('.text-tile-toolbar');
+    setPanelOrigin(bar ? `${Math.round(btn.offsetLeft + btn.offsetWidth / 2)}px` : '50%');
+  };
+
   const dark = st.background && st.background !== 'transparent' && isDarkColor(st.background);
   const px = textStylePx(st);
   const family = (FONT_FAMILIES.find(f => f.id === st.font) || FONT_FAMILIES[0]).css;
@@ -146,6 +162,9 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
     textAlign: st.align,
     justifyContent: { top: 'flex-start', middle: 'center', bottom: 'flex-end' }[st.valign],
     ...(family ? { fontFamily: family } : {}),
+    // Size-specific tracking and leading for the house faces; a picked
+    // font (Georgia, Mono...) keeps its own metrics.
+    ...(!st.font || st.font === 'inter' || st.font === 'manrope' ? { letterSpacing: tracking(px), lineHeight: leading(px) } : {}),
   };
   const sizeOptions = FONT_SIZES.includes(px) ? FONT_SIZES : [...FONT_SIZES, px].sort((a, b) => a - b);
   const toggle = (key, label, icon) => (
@@ -187,23 +206,23 @@ export default function TextTile({ tile, onChange, onRemove, onDuplicate, autoEd
             <i className={`ph ${a === 'center' ? 'ph-text-align-center' : a === 'right' ? 'ph-text-align-right' : 'ph-text-align-left'}`} aria-hidden="true" />
           </button>
         ))}
-        <button type="button" className={`tt-btn${panel === 'color' ? ' is-on' : ''}`} aria-label="Text color" onClick={() => setPanel(p => (p === 'color' ? null : 'color'))}>
+        <button type="button" className={`tt-btn${panel === 'color' ? ' is-on' : ''}`} aria-label="Text color" onClick={e => { anchorPanel(e); setPanel(p => (p === 'color' ? null : 'color')); }}>
           <i className="ph ph-text-aa" aria-hidden="true" /><span className="tt-chip" style={{ background: st.color || (dark ? '#fff' : '#0e0f0c') }} />
         </button>
-        <button type="button" className={`tt-btn${panel === 'fill' ? ' is-on' : ''}`} aria-label="Background" onClick={() => setPanel(p => (p === 'fill' ? null : 'fill'))}>
+        <button type="button" className={`tt-btn${panel === 'fill' ? ' is-on' : ''}`} aria-label="Background" onClick={e => { anchorPanel(e); setPanel(p => (p === 'fill' ? null : 'fill')); }}>
           <i className="ph ph-paint-bucket" aria-hidden="true" />
         </button>
         <span className="tt-spacer" />
         <button type="button" className="tt-btn" aria-label="Edit text" onClick={() => setEditing(true)}><i className="ph ph-pencil-simple" aria-hidden="true" /></button>
         <button type="button" className="tt-btn" aria-label="Duplicate text box" onClick={onDuplicate}><i className="ph ph-copy" aria-hidden="true" /></button>
         <button type="button" className="tt-btn is-danger" aria-label="Remove text box" onClick={onRemove}><i className="ph ph-trash" aria-hidden="true" /></button>
-        {panel && (
-          <div className="tt-popover">
+        {panelPresence.mounted && shownPanel.current && (
+          <div className="tt-popover" data-state={panelPresence.state} style={{ transformOrigin: `${panelOrigin} top` }}>
             <SwatchPicker
-              label={panel === 'color' ? 'Text color' : 'Background'}
-              value={panel === 'color' ? (st.color || '#0e0f0c') : st.background}
-              allowTransparent={panel === 'fill'}
-              onChange={c => { setStyle(panel === 'color' ? { color: c } : { background: c }); }}
+              label={shownPanel.current === 'color' ? 'Text color' : 'Background'}
+              value={shownPanel.current === 'color' ? (st.color || '#0e0f0c') : st.background}
+              allowTransparent={shownPanel.current === 'fill'}
+              onChange={c => { setStyle(shownPanel.current === 'color' ? { color: c } : { background: c }); }}
             />
           </div>
         )}

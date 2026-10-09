@@ -23,6 +23,8 @@ import {
   resolveChartSpec,
 } from '../../shared/chart-engine.js';
 import { getChartTheme } from '../../shared/chart-themes.js';
+import { usePresence } from './lib/motion.js';
+import { tracking } from './lib/type.js';
 
 export const DEFAULT_APPEARANCE = {
   showTitle: true,
@@ -132,6 +134,7 @@ export function TileFrame({ title, appearance, actions, children, footnote, drag
     ...(a.border ? { '--tile-border': dark ? 'rgba(255,255,255,0.3)' : 'var(--color-ink)' } : {}),
     '--tile-title-color': a.titleColor || (dark ? '#ffffff' : 'var(--color-ink)'),
     '--tile-title-size': `${TITLE_SIZES[a.titleSize] || 15}px`,
+    '--tile-title-track': tracking(TITLE_SIZES[a.titleSize] || 15),
   };
   return (
     <article className={`tile${dark ? ' is-dark' : ''}${a.showTitle ? '' : ' no-title'} ${className}`} style={style} aria-label={title}>
@@ -150,6 +153,7 @@ export function TileFrame({ title, appearance, actions, children, footnote, drag
 
 export function TileMenu({ items }) {
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open, 200);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
@@ -164,8 +168,8 @@ export function TileMenu({ items }) {
       <button type="button" className="tile-icon-btn" aria-label="Tile options" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <i className="ph ph-dots-three" aria-hidden="true" />
       </button>
-      {open && (
-        <div className="tile-menu-popover" role="menu">
+      {presence.mounted && (
+        <div className="tile-menu-popover" role="menu" data-state={presence.state}>
           {items.map(it => (
             <button key={it.label} type="button" role="menuitem" className={it.danger ? 'is-danger' : ''} onClick={() => { setOpen(false); it.onClick(); }}>
               <i className={`ph ${it.icon}`} aria-hidden="true" /> {it.label}

@@ -20,6 +20,7 @@ import { buildAllTds } from './lib/tdsExport.js';
 import { renderDashboardPng } from './lib/dashboardImage.js';
 import { tileDisplayTitle } from './Tile.jsx';
 import { buildVizTables, tilesForGuide, buildRebuildGuide, buildReadme } from './lib/rebuildGuide.js';
+import useScrollEdges from './lib/useScrollEdges.js';
 
 function tablesUsedBy(tile, tableNames) {
   if (!tile.sql) return [];
@@ -27,7 +28,8 @@ function tablesUsedBy(tile, tableNames) {
   return tableNames.filter(name => new RegExp(`\\b(from|join)\\s+"?${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"?(?![A-Za-z0-9_])`, 'i').test(sql));
 }
 
-export default function ExportModal({ tiles, schema, onClose }) {
+export default function ExportModal({ tiles, schema, onClose, motionState = 'open' }) {
+  const bodyEdgesRef = useScrollEdges();
   const user = useCurrentUser();
   const tableNames = useMemo(() => schema.map(t => t.name), [schema]);
   const usage = useMemo(() => {
@@ -124,14 +126,14 @@ export default function ExportModal({ tiles, schema, onClose }) {
   );
 
   return createPortal(
-    <div className="tile-editor-overlay island-overlay" onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
+    <div className="tile-editor-overlay island-overlay" data-state={motionState} onMouseDown={e => { if (e.target === e.currentTarget && !busy) onClose(); }}>
       <div className="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-title" ref={dialogRef}>
         <header className="export-header">
           <h2 id="export-title">Export dashboard</h2>
           <button type="button" className="btn btn-icon" onClick={onClose} aria-label="Close" disabled={busy}><i className="ph ph-x" aria-hidden="true" /></button>
         </header>
 
-        <div className="export-body">
+        <div className="export-body" ref={bodyEdgesRef}>
           <section>
             <h3 className="export-step">What to include</h3>
             <div className="export-options">
