@@ -1786,12 +1786,12 @@ function closeModalOverlay(overlay) {
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  const openModal = document.querySelector('.modal-overlay:not([hidden])');
+  const openModal = document.querySelector('.modal-overlay:not([hidden]):not(.is-closing)');
   if (openModal) closeModalOverlay(openModal);
 });
 
 document.addEventListener('click', (e) => {
-  if (e.target.classList?.contains('modal-overlay') && !e.target.hidden) {
+  if (e.target.classList?.contains('modal-overlay') && !e.target.hidden && !e.target.classList.contains('is-closing')) {
     closeModalOverlay(e.target);
   }
 });
@@ -1854,6 +1854,34 @@ document.addEventListener('click', (e) => {
     }
   }
 
+  // Closing plays the open animation in reverse (app.css .is-closing), so
+  // a modal leaves along the path it arrived on. Every close* function
+  // just sets hidden; this briefly un-hides the overlay to animate it out,
+  // then hides it for real. Focus and the trap are released immediately.
+  const EXIT_MS = 220;
+  const reducedMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function finishClosing(overlay) {
+    clearTimeout(overlay._closeTimer);
+    overlay.classList.remove('is-closing');
+    overlay.removeAttribute('inert');
+    delete overlay.dataset.closing;
+  }
+
+  function animateOut(overlay) {
+    if (reducedMotion()) return;
+    overlay.dataset.closing = 'animating';
+    overlay.classList.add('is-closing');
+    overlay.setAttribute('inert', '');
+    overlay.hidden = false;
+    overlay._closeTimer = setTimeout(() => {
+      overlay.classList.remove('is-closing');
+      overlay.removeAttribute('inert');
+      overlay.dataset.closing = 'done';
+      overlay.hidden = true;
+    }, EXIT_MS);
+  }
+
   function wireOverlay(overlay) {
     if (overlay.dataset.a11yWired) return;
     overlay.dataset.a11yWired = 'true';
@@ -1862,8 +1890,15 @@ document.addEventListener('click', (e) => {
     new MutationObserver((mutations) => {
       for (const m of mutations) {
         if (m.attributeName !== 'hidden') continue;
-        if (overlay.hidden) deactivateModal(overlay);
-        else activateModal(overlay);
+        const closing = overlay.dataset.closing;
+        if (overlay.hidden) {
+          if (closing === 'done') { delete overlay.dataset.closing; continue; }
+          if (closing === 'animating') { finishClosing(overlay); continue; } // closed again mid-exit
+          deactivateModal(overlay);
+          animateOut(overlay);
+        } else if (closing !== 'animating') {
+          activateModal(overlay);
+        }
       }
     }).observe(overlay, { attributes: true, attributeFilter: ['hidden'] });
     if (!overlay.hidden) activateModal(overlay);

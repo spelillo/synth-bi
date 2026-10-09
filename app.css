@@ -55,9 +55,11 @@ a { color: var(--color-ink); }
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
-  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+  letter-spacing: var(--track-16);
+  /* Press feedback lands on pointer-down and is instant; release springs back. */
+  transition: background-color 120ms ease, border-color 120ms ease, transform var(--dur-spring-fast) var(--ease-spring);
 }
-.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 120ms, 120ms, var(--dur-press); transition-timing-function: ease, ease, var(--ease-press); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .btn .ph { font-size: 1.15em; }
 .nav-btn-icon { width: 15px; height: 15px; vertical-align: -3px; }
@@ -74,8 +76,8 @@ a { color: var(--color-ink); }
 .btn-danger { background: var(--color-negative); color: #fff; }
 .btn-danger:hover:not(:disabled) { background: var(--color-negative-deep); }
 
-.btn-sm { padding: 6px var(--space-lg); font-size: 14px; line-height: 20px; }
-.btn-lg { padding: 14px var(--space-2xl); font-size: 17px; }
+.btn-sm { padding: 6px var(--space-lg); font-size: 14px; line-height: 20px; letter-spacing: var(--track-14); }
+.btn-lg { padding: 14px var(--space-2xl); font-size: 17px; letter-spacing: var(--track-17); }
 
 .btn-icon {
   width: 40px; height: 40px;
@@ -105,7 +107,7 @@ a { color: var(--color-ink); }
   font-size: 24px;
   line-height: 30px;
   font-weight: 600;
-  letter-spacing: -0.4px;
+  letter-spacing: var(--track-24);
 }
 
 /* Degular Display isn't licensed in this project — Inter is the hybrid
@@ -120,7 +122,7 @@ a { color: var(--color-ink); }
   font-weight: 500;
   font-size: clamp(36px, 5vw, 56px);
   line-height: 1.05;
-  letter-spacing: -0.015em;
+  letter-spacing: var(--track-display);
   color: var(--color-ink);
 }
 
@@ -155,7 +157,12 @@ a { color: var(--color-ink); }
   align-items: center;
   justify-content: space-between;
   gap: var(--space-lg);
+  /* A translucent bar: the home view scrolls underneath it. */
   background: var(--color-canvas);
+  background: var(--material-bar);
+  -webkit-backdrop-filter: var(--material-bar-blur);
+  backdrop-filter: var(--material-bar-blur);
+  box-shadow: inset 0 -1px 0 var(--hairline);
   padding: var(--space-md) var(--space-xl);
   font-size: 14px;
   font-weight: 600;
@@ -290,7 +297,7 @@ a { color: var(--color-ink); }
   backdrop-filter: blur(4px);
 }
 .loading-box { width: min(420px, calc(100vw - 48px)); background: var(--color-canvas); border-radius: var(--radius-xl); padding: var(--space-xl); }
-.loading-label { font-weight: 600; font-size: 18px; margin-bottom: var(--space-lg); }
+.loading-label { font-weight: 600; font-size: 18px; letter-spacing: var(--track-17); margin-bottom: var(--space-lg); }
 .loading-track { height: 10px; border-radius: var(--radius-pill); background: var(--color-canvas-soft); overflow: hidden; }
 .loading-fill { height: 100%; width: 0; background: var(--color-primary); border-radius: var(--radius-pill); }
 .loading-caption { margin-top: var(--space-md); font-size: 14px; color: var(--color-body); }
@@ -312,7 +319,7 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   font-weight: 800;
   font-size: 28px;
   line-height: 32px;
-  letter-spacing: -0.02em;
+  letter-spacing: var(--track-28);
   max-width: 50vw;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
@@ -457,7 +464,9 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-lg);
-  background: rgba(14, 15, 12, 0.45);
+  background: var(--scrim);
+  -webkit-backdrop-filter: var(--scrim-blur);
+  backdrop-filter: var(--scrim-blur);
   overflow-y: auto;
 }
 .modal {
@@ -468,7 +477,7 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   background: var(--color-canvas);
   border-radius: var(--radius-xl);
   padding: var(--space-xl);
-  box-shadow: 0 24px 64px rgba(14, 15, 12, 0.22);
+  box-shadow: var(--shadow-sheet);
 }
 .modal-small { width: min(440px, 100%); text-align: center; }
 .modal-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-bottom: var(--space-lg); }
@@ -480,7 +489,7 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   background: var(--color-primary-pale); color: var(--color-ink-deep); font-size: 24px;
 }
 .modal-icon-negative { background: #fbe4e4; color: var(--color-negative-deep); }
-.modal-title { margin: 0 0 var(--space-sm); font-size: 24px; line-height: 31px; font-weight: 600; letter-spacing: -0.48px; }
+.modal-title { margin: 0 0 var(--space-sm); font-size: 24px; line-height: 30px; font-weight: 600; letter-spacing: var(--track-24); }
 .modal-body { margin: 0 0 var(--space-xl); color: var(--color-body); font-size: 15px; line-height: 22px; }
 .modal-actions { display: flex; gap: var(--space-sm); justify-content: center; flex-wrap: wrap; }
 .rel-type-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-sm); margin-bottom: var(--space-xl); }
@@ -496,7 +505,7 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
 /* ---------- Account modal (ex-auth-form-card) ---------- */
 .account-modal { width: min(880px, 100%); padding: 0; display: grid; grid-template-columns: 1fr 1.15fr; overflow: hidden; }
 .account-pitch { background: var(--color-ink); color: var(--color-canvas-soft); padding: var(--space-2xl); display: flex; flex-direction: column; gap: var(--space-xl); }
-.account-pitch-title { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 34px; letter-spacing: -0.02em; color: var(--color-primary); }
+.account-pitch-title { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: 34px; line-height: 1.05; letter-spacing: var(--track-32); color: var(--color-primary); }
 .account-perks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-lg); }
 .account-perks li { display: flex; gap: var(--space-md); align-items: flex-start; }
 .account-perks .ph { font-size: 22px; color: var(--color-primary); flex: 0 0 auto; margin-top: 1px; }
@@ -509,7 +518,7 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
 .account-tabs { display: inline-flex; gap: 4px; padding: 4px; background: var(--color-canvas-soft); border-radius: var(--radius-pill); align-self: flex-start; }
 .account-tab { border: 0; background: transparent; padding: 6px var(--space-lg); border-radius: var(--radius-pill); font-weight: 600; font-size: 14px; cursor: pointer; color: var(--color-body); }
 .account-tab.is-active { background: var(--color-canvas); color: var(--color-ink); }
-.account-title { margin: var(--space-sm) 0 0; font-size: 28px; line-height: 34px; font-weight: 600; letter-spacing: -0.6px; }
+.account-title { margin: var(--space-sm) 0 0; font-size: 28px; line-height: 32px; font-weight: 600; letter-spacing: var(--track-28); }
 .account-sub { margin: 0; color: var(--color-body); font-size: 15px; line-height: 22px; }
 .account-form { display: flex; flex-direction: column; gap: var(--space-md); margin-top: var(--space-sm); }
 .account-field { display: flex; flex-direction: column; gap: 6px; }
@@ -556,4 +565,48 @@ body.in-app { height: 100vh; overflow: hidden; display: flex; flex-direction: co
   .account-pitch { display: none; }
   .account-main { padding: var(--space-xl); }
   body.in-app { height: auto; min-height: 100vh; overflow: auto; }
+}
+
+/* =====================================================================
+   Feel layer — press feedback, sheet motion, accessibility media queries.
+   Tokens are in tokens.css; the dashboard island's version of this layer
+   is at the end of dashboard/src/dashboard.css.
+   ===================================================================== */
+
+/* Instant feedback on pointer-down for the shell's own controls. */
+.tab-btn, .table-chip, .chip-action, .rel-type-btn, .account-tab, .dash-card-thumb, .password-toggle-btn {
+  transition: transform var(--dur-spring-fast) var(--ease-spring), background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+.tab-btn:active, .table-chip:active, .account-tab:active { transform: scale(0.96); transition-duration: var(--dur-press); transition-timing-function: var(--ease-press); }
+.chip-action:active, .password-toggle-btn:active { transform: scale(0.88); transition-duration: var(--dur-press); transition-timing-function: var(--ease-press); }
+.rel-type-btn:active, .dash-card-thumb:active { transform: scale(0.98); transition-duration: var(--dur-press); transition-timing-function: var(--ease-press); }
+.password-toggle-btn:active { transform: translateY(-50%) scale(0.88); }
+.tab-btn, .account-tab { letter-spacing: var(--track-14); }
+
+/* Modals rise out of a dimmed, softly blurred scrim and leave the same
+   way (app.js plays .is-closing before hiding the overlay). */
+.modal-overlay { animation: shell-scrim-in var(--dur-spring) var(--ease-spring) both; }
+.modal-overlay .modal { animation: shell-sheet-in var(--dur-spring) var(--ease-spring) both; }
+.modal-overlay.is-closing { animation: shell-scrim-out var(--dur-exit) var(--ease-spring-exit) both; pointer-events: none; }
+.modal-overlay.is-closing .modal { animation: shell-sheet-out var(--dur-exit) var(--ease-spring-exit) both; }
+@keyframes shell-scrim-in { from { opacity: 0; } }
+@keyframes shell-scrim-out { to { opacity: 0; } }
+@keyframes shell-sheet-in { from { transform: translateY(32px) scale(0.97); } }
+@keyframes shell-sheet-out { to { transform: translateY(32px) scale(0.97); } }
+
+.loading-overlay { background: var(--scrim); -webkit-backdrop-filter: var(--scrim-blur); backdrop-filter: var(--scrim-blur); }
+.loading-box { box-shadow: var(--shadow-sheet); }
+
+@media (prefers-reduced-motion: reduce) {
+  .modal-overlay .modal { animation-name: shell-scrim-in; } /* a cross-fade, no rise */
+  .btn:active:not(:disabled), .tab-btn:active, .table-chip:active, .account-tab:active,
+  .chip-action:active, .rel-type-btn:active, .dash-card-thumb:active { transform: none; }
+  .password-toggle-btn:active { transform: translateY(-50%); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .nav-bar { background: var(--color-canvas); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+@media (prefers-contrast: more) {
+  .nav-bar { background: var(--color-canvas); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: inset 0 -1px 0 var(--color-ink); }
+  .modal { border: 1px solid var(--color-ink); }
 }

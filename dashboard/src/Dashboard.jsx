@@ -23,6 +23,9 @@ import TileEditor from './TileEditor.jsx';
 import AiPanel from './AiPanel.jsx';
 import ExportModal from './ExportModal.jsx';
 import Segmented from './Segmented.jsx';
+import { GridMotion } from './lib/gridMotion.js';
+import { VelocityTracker, animateSpring, rubberband, usePresence } from './lib/motion.js';
+import useScrollEdges from './lib/useScrollEdges.js';
 
 export const GRID_COLS = 24;
 const ROW_HEIGHT = 20;
@@ -32,6 +35,8 @@ const DEFAULT_TEXT_SIZE = { w: 12, h: 6 };
 const STACK_BREAKPOINT = 640;
 const AI_PANEL_PREF_KEY = 'synthbi_ai_panel_v1';
 const CANVAS_SWATCHES = ['', '#ffffff', '#f4f7f2', '#e2f6d5', '#0e0f0c', '#163300'];
+const PANEL_MIN = 300;
+const PANEL_MAX = 620;
 
 export function newTileId() {
   return `t_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
@@ -75,11 +80,21 @@ function useElementWidth() {
     ro.observe(el);
     return () => ro.disconnect();
   }, [el]);
-  return [setEl, width];
+  return [setEl, width, el];
 }
+
+// The last non-null value, so a surface that's closing can keep rendering
+// what it showed while it animates out.
+function useLastPresent(value) {
+  const ref = useRef(value);
+  if (value) ref.current = value;
+  return value || ref.current;
+}
+
 
 function StyleMenu({ settings, onChange }) {
   const [open, setOpen] = useState(false);
+  const presence = usePresence(open, 220);
   const ref = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
@@ -94,8 +109,8 @@ function StyleMenu({ settings, onChange }) {
       <button type="button" className="btn btn-secondary btn-sm" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <i className="ph ph-paint-brush-broad" aria-hidden="true" /> Style
       </button>
-      {open && (
-        <div className="style-popover" role="dialog" aria-label="Dashboard style">
+      {presence.mounted && (
+        <div className="style-popover" role="dialog" aria-label="Dashboard style" data-state={presence.state}>
           <div className="field">
             <span className="field-label">Canvas background</span>
             <div className="swatch-picker">
@@ -138,9 +153,28 @@ export default function Dashboard() {
   const [toast, setToast] = useState(null);   // { message, undo? }
   const [freshTextId, setFreshTextId] = useState(null);
   const [panel, setPanel] = useState(() => ({ open: true, width: 380, ...(readPanelPref() || {}) }));
-  const [gridWrapRef, gridWidth] = useElementWidth();
+  const [gridWrapRef, gridWidth, gridWrapEl] = useElementWidth();
+  const gridWrapEdges = useScrollEdges();
+  const setGridWrap = useCallback(el => { gridWrapRef(el); gridWrapEdges(el); }, [gridWrapRef, gridWrapEdges]);
   const toastTimer = useRef(null);
   const openerRef = useRef(null);
+
+  // Surfaces that enter and leave: each keeps rendering what it showed
+  // while it animates back out along the path it came in on.
+  const editorPresence = usePresence(!!editor, 260);
+  const exportPresence = usePresence(exportOpen, 260);
+  const panelPresence = usePresence(panel.open, 260);
+  const toastPresence = usePresence(!!toast, 240);
+  const shownEditor = useLastPresent(editor);
+  const shownToast = useLastPresent(toast);
+
+  // Spring motion for dragging, dropping, and reflowing tiles.
+  const motionRef = useRef(null);
+  if (!motionRef.current) motionRef.current = new GridMotion();
+  const motion = motionRef.current;
+  useEffect(() => { motion.attach(gridWrapEl); }, [motion, gridWrapEl]);
+  useEffect(() => () => motion.detach(), [motion]);
+  const panelSpring = useRef(null);
 
   // react-grid-layout animates every item from the grid origin on first
   // mount; transitions only switch on once the initial layout has painted,
@@ -248,26 +282,54 @@ export default function Dashboard() {
   })), [tiles]);
 
   // ---- AI panel resize ----
+  // The divider tracks the pointer 1:1 (pointer capture keeps it tracking
+  // off the handle). Past the min/max width it rubber-bands, and on release
+  // springs back to the limit carrying the pointer's speed. Grabbing it
+  // while it's still springing picks it up from where it is.
   const startPanelResize = e => {
     e.preventDefault();
+    const handle = e.currentTarget;
+    try { handle.setPointerCapture(e.pointerId); } catch { /* synthetic events */ }
+    const live = panelSpring.current ? panelSpring.current.stop() : panel.width;
+    panelSpring.current = null;
     const startX = e.clientX;
-    const startW = panel.width;
-    const onMove = ev => setPanel(p => ({ ...p, width: Math.min(620, Math.max(300, startW + (startX - ev.clientX))) }));
+    const tracker = new VelocityTracker();
+    tracker.add(e.clientX, 0);
+    let width = live;
+    const onMove = ev => {
+      tracker.add(ev.clientX, 0);
+      const raw = live + (startX - ev.clientX);
+      width = raw < PANEL_MIN ? PANEL_MIN + rubberband(raw - PANEL_MIN, PANEL_MIN)
+        : raw > PANEL_MAX ? PANEL_MAX + rubberband(raw - PANEL_MAX, PANEL_MAX)
+          : raw;
+      setPanel(p => ({ ...p, width }));
+    };
     const onUp = () => {
-      document.removeEventListener('pointermove', onMove);
-      document.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointermove', onMove);
+      handle.removeEventListener('pointerup', onUp);
+      handle.removeEventListener('pointercancel', onUp);
       document.body.classList.remove('is-resizing-panel');
+      const target = Math.min(PANEL_MAX, Math.max(PANEL_MIN, width));
+      if (target === width) return;
+      panelSpring.current = animateSpring({
+        from: width,
+        to: target,
+        velocity: -tracker.velocity().x, // the panel widens as the pointer moves left
+        onUpdate: w => setPanel(p => ({ ...p, width: Math.round(w * 10) / 10 })),
+        onDone: () => { panelSpring.current = null; },
+      });
     };
     document.body.classList.add('is-resizing-panel');
-    document.addEventListener('pointermove', onMove);
-    document.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointermove', onMove);
+    handle.addEventListener('pointerup', onUp);
+    handle.addEventListener('pointercancel', onUp);
   };
 
   const requestExport = () => setExportOpen(true);
 
   if (!schema.length) return null;
 
-  const editingTile = editor && editor.tileId ? tiles.find(t => t.id === editor.tileId) : null;
+  const editingTile = shownEditor && shownEditor.tileId ? tiles.find(t => t.id === shownEditor.tileId) : null;
   const stacked = gridWidth > 0 && gridWidth < STACK_BREAKPOINT;
   const chartCount = tiles.filter(t => t.kind !== 'text').length;
   const margin = SPACING[settings.spacing] || SPACING.comfortable;
@@ -299,35 +361,35 @@ export default function Dashboard() {
       style={{ '--ai-panel-width': `${panel.width}px`, ...(settings.background ? { '--dash-bg': settings.background } : {}) }}
     >
       <section className="dash-canvas" aria-label="Dashboard canvas">
-        <div className="dash-header">
-          <div className="dash-header-left">
-            <h2 className="dash-title">Dashboard</h2>
-            <span className="dash-count">{chartCount ? `${chartCount} tile${chartCount === 1 ? '' : 's'}` : 'No tiles yet'}</span>
+        <div className="dash-grid-wrap" ref={setGridWrap}>
+          <div className="dash-header">
+            <div className="dash-header-left">
+              <h2 className="dash-title">Dashboard</h2>
+              <span className="dash-count">{chartCount ? `${chartCount} tile${chartCount === 1 ? '' : 's'}` : 'No tiles yet'}</span>
+            </div>
+            <div className="dash-header-right">
+              {!panel.open && (
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPanel(p => ({ ...p, open: true }))}>
+                  <i className="ph ph-sparkle" aria-hidden="true" /> Assistant
+                </button>
+              )}
+              {tiles.length > 0 && (
+                <>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={addTextBox}>
+                    <i className="ph ph-text-t" aria-hidden="true" /> Text
+                  </button>
+                  <StyleMenu settings={settings} onChange={patch => bridge.setDashboardSettings(patch)} />
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditor({ isNew: true })}>
+                    <i className="ph ph-plus" aria-hidden="true" /> Add tile
+                  </button>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={requestExport} disabled={!chartCount}>
+                    <i className="ph ph-export" aria-hidden="true" /> Export
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="dash-header-right">
-            {!panel.open && (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPanel(p => ({ ...p, open: true }))}>
-                <i className="ph ph-sparkle" aria-hidden="true" /> Assistant
-              </button>
-            )}
-            {tiles.length > 0 && (
-              <>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={addTextBox}>
-                  <i className="ph ph-text-t" aria-hidden="true" /> Text
-                </button>
-                <StyleMenu settings={settings} onChange={patch => bridge.setDashboardSettings(patch)} />
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditor({ isNew: true })}>
-                  <i className="ph ph-plus" aria-hidden="true" /> Add tile
-                </button>
-                <button type="button" className="btn btn-primary btn-sm" onClick={requestExport} disabled={!chartCount}>
-                  <i className="ph ph-export" aria-hidden="true" /> Export
-                </button>
-              </>
-            )}
-          </div>
-        </div>
 
-        <div className="dash-grid-wrap" ref={gridWrapRef}>
           {tiles.length === 0 ? (
             <div className="dash-empty">
               <div className="dash-empty-card">
@@ -364,17 +426,27 @@ export default function Dashboard() {
               draggableCancel=".tile-actions, .text-tile-toolbar button, .text-tile-toolbar select, .tt-popover, .text-tile-input"
               resizeHandles={['se', 'e', 's']}
               onLayoutChange={onLayoutChange}
+              onDragStart={motion.onDragStart}
+              onDrag={motion.onDrag}
+              onDragStop={motion.onDragStop}
+              onResizeStart={motion.onResizeStart}
+              onResizeStop={motion.onResizeStop}
             >
-              {tiles.map(tile => <div key={tile.id} className={tile.kind === 'text' ? 'grid-item-text' : ''}>{renderTile(tile)}</div>)}
+              {tiles.map(tile => (
+                <div key={tile.id} data-motion-id={tile.id} className={tile.kind === 'text' ? 'grid-item-text' : ''}>
+                  <div className="grid-motion">{renderTile(tile)}</div>
+                </div>
+              ))}
             </GridLayout>
           )}
         </div>
       </section>
 
-      {panel.open && (
+      {panelPresence.mounted && (
         <>
-          <div className="dash-resizer" role="separator" aria-orientation="vertical" aria-label="Resize assistant panel" onPointerDown={startPanelResize} />
+          <div className="dash-resizer" role="separator" aria-orientation="vertical" aria-label="Resize assistant panel" data-state={panelPresence.state} onPointerDown={startPanelResize} />
           <AiPanel
+            motionState={panelPresence.state}
             onCollapse={() => setPanel(p => ({ ...p, open: false }))}
             onReviewDraft={draft => openEditor(draft.targetTileId ? { tileId: draft.targetTileId, draft } : { draft })}
             onAddDraft={draft => {
@@ -393,12 +465,13 @@ export default function Dashboard() {
         </>
       )}
 
-      {editor && (
+      {editorPresence.mounted && shownEditor && (
         <TileEditor
-          key={`${editor.tileId || 'new'}-${editor.draft ? editor.draft.key || 'draft' : ''}`}
+          key={`${shownEditor.tileId || 'new'}-${shownEditor.draft ? shownEditor.draft.key || 'draft' : ''}`}
+          motionState={editorPresence.state}
           tile={editingTile}
-          draft={editor.draft}
-          initialPanel={editor.panel || (editor.draft ? 'visual' : undefined)}
+          draft={shownEditor.draft}
+          initialPanel={shownEditor.panel || (shownEditor.draft ? 'visual' : undefined)}
           schema={schema}
           schemaVersion={schemaVersion}
           previewMode={previewMode}
@@ -407,12 +480,12 @@ export default function Dashboard() {
         />
       )}
 
-      {exportOpen && <ExportModal tiles={tiles} schema={schema} onClose={() => setExportOpen(false)} />}
+      {exportPresence.mounted && <ExportModal motionState={exportPresence.state} tiles={tiles} schema={schema} onClose={() => setExportOpen(false)} />}
 
-      {toast && (
-        <div className="toast" role="status" aria-live="polite">
-          <span>{toast.message}</span>
-          {toast.undo && <button type="button" className="toast-action" onClick={toast.undo}>Undo</button>}
+      {toastPresence.mounted && shownToast && (
+        <div className="toast" role="status" aria-live="polite" data-state={toastPresence.state}>
+          <span>{shownToast.message}</span>
+          {shownToast.undo && <button type="button" className="toast-action" onClick={shownToast.undo}>Undo</button>}
           <button type="button" className="toast-close" aria-label="Dismiss" onClick={() => setToast(null)}><i className="ph ph-x" aria-hidden="true" /></button>
         </div>
       )}

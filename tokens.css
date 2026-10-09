@@ -77,3 +77,109 @@
   --chart-series-7: #c5edab;
   --chart-series-8: #054d28;
 }
+
+/* =====================================================================
+   Motion, materials, and type tuning — the Apple-style feel layer
+   (fluid-interface guidelines). Colors and faces above are unchanged;
+   these only decide how things move, how surfaces layer, and how type is
+   tracked at each size.
+   ===================================================================== */
+:root {
+  /* ---- Motion ----
+     --ease-spring is a critically damped spring (damping ratio 1.0, no
+     overshoot) sampled into a linear() curve. A critically damped spring
+     has the same shape at every response, so one curve serves them all;
+     only the duration changes (the time to settle within 0.5%):
+       response 0.30s -> 355ms, 0.35s -> 415ms, 0.40s -> 475ms.
+     --ease-spring-exit is the same curve mirrored, so anything that leaves
+     retraces the path it arrived on. The cubic-bezier fallbacks cover
+     browsers without linear(). Gesture-driven motion (tile drag, panel
+     resize) doesn't use these at all: it runs on real springs in
+     dashboard/src/lib/motion.js so it can be grabbed mid-flight. */
+  --ease-spring: cubic-bezier(0.2, 0.9, 0.3, 1);
+  --ease-spring-exit: cubic-bezier(0.7, 0, 0.8, 0.1);
+  --ease-press: cubic-bezier(0.2, 0, 0, 1);
+  --dur-press: 100ms;
+  --dur-spring-fast: 355ms;   /* popovers, menus, toggles */
+  --dur-spring: 415ms;        /* sheets, panels */
+  --dur-exit: 220ms;
+
+  /* ---- Materials ----
+     Translucent layers for floating chrome (toolbars, popovers, sheets'
+     scrims). Bigger surfaces read as thicker: more blur, deeper shadow. */
+  --material-bar: rgba(255, 255, 255, 0.72);
+  --material-bar-blur: blur(20px) saturate(180%);
+  --material-popover: rgba(255, 255, 255, 0.84);
+  --material-popover-blur: blur(24px) saturate(180%);
+  --material-edge: rgba(255, 255, 255, 0.6);       /* bright top edge: light catching the glass */
+  --shadow-popover: 0 1px 0 rgba(14, 15, 12, 0.04), 0 12px 32px rgba(14, 15, 12, 0.16);
+  --shadow-sheet: 0 1px 0 rgba(14, 15, 12, 0.04), 0 32px 80px rgba(14, 15, 12, 0.28);
+  --shadow-lift: 0 18px 40px rgba(14, 15, 12, 0.18), 0 2px 6px rgba(14, 15, 12, 0.08);
+  --scrim: rgba(14, 15, 12, 0.38);
+  --scrim-blur: blur(6px);
+  --hairline: rgba(14, 15, 12, 0.12);
+
+  /* ---- Tracking ----
+     Size-specific letter-spacing from Inter's own dynamic-metrics curve
+     (tracking = -0.0223 + 0.185 * e^(-0.1745 * size), in em): small text
+     opens up slightly, large text tightens. Never one value for every
+     size. Leading tightens as size grows, the other half of the set. */
+  --track-12: 0em;
+  --track-13: -0.003em;
+  --track-14: -0.006em;
+  --track-15: -0.009em;
+  --track-16: -0.011em;
+  --track-17: -0.013em;
+  --track-20: -0.017em;
+  --track-22: -0.018em;
+  --track-24: -0.0195em;
+  --track-28: -0.021em;
+  --track-32: -0.0215em;
+  --track-display: -0.022em;
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: linear(0, 0.0297 3.6%, 0.1002 7.1%, 0.1908 10.7%, 0.2883 14.3%, 0.3846 17.9%, 0.4749 21.4%, 0.5568 25%, 0.6294 28.6%, 0.6924 32.1%, 0.7465 35.7%, 0.7924 39.3%, 0.8309 42.9%, 0.863 46.4%, 0.8896 50%, 0.9115 53.6%, 0.9295 57.1%, 0.9442 60.7%, 0.9561 64.3%, 0.9658 67.9%, 0.9736 71.4%, 0.9799 75%, 0.985 78.6%, 0.9891 82.1%, 0.9923 85.7%, 0.9949 89.3%, 0.997 92.9%, 0.9987 96.4%, 1);
+    --ease-spring-exit: linear(0, 0.0013 3.6%, 0.003 7.1%, 0.0051 10.7%, 0.0077 14.3%, 0.0109 17.9%, 0.015 21.4%, 0.0201 25%, 0.0264 28.6%, 0.0342 32.1%, 0.0439 35.7%, 0.0558 39.3%, 0.0705 42.9%, 0.0885 46.4%, 0.1104 50%, 0.137 53.6%, 0.1691 57.1%, 0.2076 60.7%, 0.2535 64.3%, 0.3076 67.9%, 0.3706 71.4%, 0.4432 75%, 0.5251 78.6%, 0.6154 82.1%, 0.7117 85.7%, 0.8092 89.3%, 0.8998 92.9%, 0.9703 96.4%, 1);
+  }
+}
+
+/* Reduced motion: no slides or springs, just short cross-fades. Elements
+   read these tokens, so shortening them here tames every transition; the
+   per-component rules below drop the transforms themselves. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ease-spring: ease;
+    --ease-spring-exit: ease;
+    --dur-spring-fast: 160ms;
+    --dur-spring: 200ms;
+    --dur-exit: 160ms;
+  }
+}
+
+/* Reduced transparency: frosted surfaces go solid, blur goes away. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --material-bar: var(--color-canvas);
+    --material-bar-blur: none;
+    --material-popover: var(--color-canvas);
+    --material-popover-blur: none;
+    --scrim: rgba(14, 15, 12, 0.55);
+    --scrim-blur: none;
+  }
+}
+
+/* More contrast: near-solid surfaces with a defined ink edge. */
+@media (prefers-contrast: more) {
+  :root {
+    --material-bar: var(--color-canvas);
+    --material-bar-blur: none;
+    --material-popover: var(--color-canvas);
+    --material-popover-blur: none;
+    --material-edge: var(--color-ink);
+    --hairline: var(--color-ink);
+    --scrim: rgba(14, 15, 12, 0.6);
+    --scrim-blur: none;
+  }
+}

@@ -36,6 +36,7 @@ import Segmented from './Segmented.jsx';
 import SqlEditor from './SqlEditor.jsx';
 import { ChartCanvas, TileFrame, DEFAULT_APPEARANCE, chartFromResult, runTileQuery, surfaceOverrides } from './Tile.jsx';
 import { SwatchPicker } from './TextTile.jsx';
+import useScrollEdges from './lib/useScrollEdges.js';
 import { AGGREGATES, DATE_GRAINS, FILTER_OPS, buildVisualSql, defaultVisual, reconcileVisual } from './lib/visualSql.js';
 
 const KIND_ICON = { numeric: 'ph-hash', date: 'ph-calendar-blank', text: 'ph-text-aa' };
@@ -215,7 +216,8 @@ function TypeGallery({ info, rowCount, value, onChange }) {
   );
 }
 
-export default function TileEditor({ tile, draft, schema, schemaVersion, previewMode, onSave, onClose, initialPanel }) {
+export default function TileEditor({ tile, draft, schema, schemaVersion, previewMode, onSave, onClose, initialPanel, motionState = 'open' }) {
+  const configEdgesRef = useScrollEdges();
   const initial = useMemo(() => initialEditorState(tile, draft, schema), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [mode, setMode] = useState(initial.mode);
   const [visual, setVisual] = useState(initial.visual);
@@ -381,7 +383,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
   const titleId = useId();
 
   return createPortal(
-    <div className="tile-editor-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="tile-editor-overlay" data-state={motionState} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="tile-editor" role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef}>
         <header className="tile-editor-header">
           <h2 id={titleId}>{tile && draft ? 'Review the suggested change' : tile ? 'Edit tile' : draft ? 'Review the suggested tile' : 'Add a tile'}</h2>
@@ -414,7 +416,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
         )}
 
         <div className="tile-editor-body">
-          <section className="tile-editor-config" aria-label="Tile settings">
+          <section className="tile-editor-config" aria-label="Tile settings" ref={configEdgesRef}>
             {panel === 'data' && (
               <>
                 <div className="build-mode-row">
