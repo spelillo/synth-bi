@@ -56,7 +56,7 @@ export function chartFromResult(result, storedSpec) {
   const spec = resolveChartSpec(storedSpec, info, result.rows.length);
   if (spec.error) return { error: spec.error, kind: 'spec', result, info };
   const data = buildChartData(spec, result.columns, result.rows);
-  if (chartDataIsEmpty(spec, data)) return { error: 'Nothing to plot — the value column has no numbers.', kind: 'spec', result, info, spec };
+  if (chartDataIsEmpty(spec, data)) return { error: 'Nothing to plot because the value column has no numbers.', kind: 'spec', result, info, spec };
   return { result, info, spec, data };
 }
 

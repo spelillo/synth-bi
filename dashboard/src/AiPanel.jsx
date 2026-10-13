@@ -24,7 +24,7 @@ import useScrollEdges from './lib/useScrollEdges.js';
 
 const MODE_HINT = {
   ask: 'Ask about your data, your dashboard, or how to build a chart. Numbers are computed here in your browser.',
-  build: 'Describe the visual you want — fields, chart type, colors, a title. It opens as a preview you can fine-tune.',
+  build: 'Describe the chart you want, including fields, chart type, or colors. It opens as a preview you can adjust before adding it.',
 };
 
 function suggestionsFor(mode, schema) {
@@ -170,7 +170,7 @@ export default function AiPanel({ motionState = 'open', onCollapse, onReviewDraf
 
   const patchTurn = (id, patch) => setTurns(ts => ts.map(t => (t.id === id ? { ...t, ...patch } : t)));
 
-  const makeTileFromSql = sql => onReviewDraft({ key: Date.now(), sql, chartSpec: null, source: { mode: 'sql' }, note: 'From the assistant’s query — pick a chart type and colors, then add it.' });
+  const makeTileFromSql = sql => onReviewDraft({ key: Date.now(), sql, chartSpec: null, source: { mode: 'sql' }, note: 'Built from the assistant’s query. Pick a chart type and colors, then add it.' });
 
   const send = async text => {
     const message = (text ?? input).trim();

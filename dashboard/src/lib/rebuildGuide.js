@@ -12,7 +12,7 @@ const POWER_BI = {
   percentColumn: '100% stacked column chart', percentBar: '100% stacked bar chart', combo: 'Line and clustered column chart',
   waterfall: 'Waterfall chart', line: 'Line chart', area: 'Area chart', stackedArea: 'Stacked area chart', pie: 'Pie chart',
   doughnut: 'Donut chart', treemap: 'Treemap', funnel: 'Funnel', scatter: 'Scatter chart', bubble: 'Scatter chart (with a Size field)',
-  histogram: 'Clustered column chart over a binned field', heatmap: 'Matrix (with conditional-format background colors)', radar: 'no built-in radar — use a Line chart or the Radar Chart custom visual from AppSource',
+  histogram: 'Clustered column chart over a binned field', heatmap: 'Matrix (with conditional-format background colors)', radar: 'no built-in radar; use a Line chart or the Radar Chart custom visual from AppSource',
   kpi: 'Card (or KPI visual for value + trend)', gauge: 'Gauge', table: 'Table', auto: 'the chart type that fits the fields',
 };
 const TABLEAU = {
@@ -20,7 +20,7 @@ const TABLEAU = {
   percentColumn: 'Stacked bar with Table Calculation > Percent of Total', percentBar: 'Stacked bar with Table Calculation > Percent of Total', combo: 'Dual axis: Bar + Line',
   waterfall: 'Gantt bar with a running-total calculation', line: 'Line', area: 'Area', stackedArea: 'Area, split by Color', pie: 'Pie', doughnut: 'Pie with a dual-axis white circle',
   treemap: 'Treemap', funnel: 'Bar sorted descending, centered with a dual axis', scatter: 'Circle / Shape', bubble: 'Circle with Size', histogram: 'Histogram (Show Me)',
-  heatmap: 'Highlight table / Square', radar: 'no built-in radar — use a Line (polar path) or a Bar', kpi: 'Text (big number on Label)', gauge: 'Bullet graph or a dual-axis donut', table: 'Text table', auto: 'the mark that fits the fields',
+  heatmap: 'Highlight table / Square', radar: 'no built-in radar; use a Line (polar path) or a Bar', kpi: 'Text (big number on Label)', gauge: 'Bullet graph or a dual-axis donut', table: 'Text table', auto: 'the mark that fits the fields',
 };
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -97,7 +97,7 @@ export function buildRebuildGuide({ dashboardName, items, viz, guides, aiUsed })
     `# How to rebuild "${dashboardName}"`,
     '',
     aiUsed
-      ? 'Each section below says what a visual shows, where its data comes from, and how to recreate it in Power BI and in Tableau. The instructions were drafted by Synth-BI\'s assistant from your tile settings and SQL (it never saw your row values) — treat them as a very good starting point.'
+      ? 'Each section below says what a visual shows, where its data comes from, and how to recreate it in Power BI and in Tableau. The instructions were drafted by Synth-BI\'s assistant from your tile settings and SQL. It never saw your row values, so use them as a starting point and check each visual against the image.'
       : 'Each section below lists a visual\'s fields and SQL and how to recreate it in Power BI and in Tableau. (The assistant was not available for this export, so these are template instructions from each tile\'s settings.)',
     '',
     '`dashboard.png` shows the layout to match. Every visual\'s exact data is in `viz-data/`, so the quickest route is: import that workbook, then drop the fields in the wells named below.',
@@ -112,10 +112,10 @@ export function buildRebuildGuide({ dashboardName, items, viz, guides, aiUsed })
     out.push(`**What it shows:** ${g.summary}`, '');
     out.push(`**Chart in Synth-BI:** ${t.type}${t.category ? ` · category: \`${t.category}\`` : ''}${t.values.length ? ` · values: ${t.values.map(x => `\`${x}\``).join(', ')}` : ''}${t.seriesBy ? ` · split by: \`${t.seriesBy}\`` : ''}`, '');
     if (g.sources && g.sources.length) out.push(`**Source data:** ${g.sources.map(s => `\`${s}.xlsx\``).join(', ')}`, '');
-    out.push(`**This visual's data:** ${v.error ? `not exported (${v.error})` : `\`viz-data/${v.fileName}\` — ${v.rows.length.toLocaleString()} rows, Excel Table \`${v.tableName}\`${v.truncated ? ' (first 200,000 rows)' : ''}`}`, '');
+    out.push(`**This visual's data:** ${v.error ? `not exported (${v.error})` : `\`viz-data/${v.fileName}\`, ${v.rows.length.toLocaleString()} rows, Excel Table \`${v.tableName}\`${v.truncated ? ' (first 200,000 rows)' : ''}`}`, '');
     if (g.logic) out.push(`**How the numbers are made:** ${g.logic}`, '');
-    out.push(`### Power BI — ${pbi.visual}`, '', list(pbi.steps || []), '');
-    out.push(`### Tableau — ${tab.mark}`, '', list(tab.steps || []), '');
+    out.push(`### Power BI: ${pbi.visual}`, '', list(pbi.steps || []), '');
+    out.push(`### Tableau: ${tab.mark}`, '', list(tab.steps || []), '');
     out.push('<details><summary>SQL</summary>', '', '```sql', String(t.sql).trim(), '```', '', '</details>', '');
   });
   if (!items.length) out.push('_This dashboard has no chart tiles yet._', '');
@@ -123,13 +123,13 @@ export function buildRebuildGuide({ dashboardName, items, viz, guides, aiUsed })
 }
 
 export function buildReadme({ dashboardName, tables, viz, image, tableau, textTiles }) {
-  const L = [`# ${dashboardName}`, '', 'Exported from Synth-BI. Your data never left your browser: these files were generated on your computer.', '', '## What\'s in this folder', ''];
-  if (image) L.push('- `dashboard.png` — the dashboard as it looked when exported (the layout to match).');
-  L.push('- `rebuild-guide.md` — for every visual: what it shows, where the data comes from, and step-by-step instructions for Power BI and Tableau.');
+  const L = [`# ${dashboardName}`, '', 'Exported from Synth-BI. Your data never left your browser. These files were generated on your computer.', '', '## What\'s in this folder', ''];
+  if (image) L.push('- `dashboard.png`: the dashboard as it looked when exported (the layout to match).');
+  L.push('- `rebuild-guide.md`: what each visual shows, where its data comes from, and step-by-step instructions for Power BI and Tableau.');
   const ok = viz.filter(v => !v.error);
-  if (ok.length) L.push(`- \`viz-data/\` — ${ok.length} Excel workbook${ok.length === 1 ? '' : 's'}, one per visual, holding exactly the rows that visual plots.`);
-  if (tables.length) L.push(`- \`*.xlsx\` (top level) — the ${tables.length} source table${tables.length === 1 ? '' : 's'}: ${tables.map(t => `${t.name} (${t.rowCount.toLocaleString()} rows)`).join(', ')}.`);
-  if (tableau && tables.length) L.push('- `*.tds` — a Tableau data source for each source table; keep it next to its .xlsx.');
+  if (ok.length) L.push(`- \`viz-data/\`: ${ok.length} Excel workbook${ok.length === 1 ? '' : 's'}, one per visual, holding exactly the rows that visual plots.`);
+  if (tables.length) L.push(`- \`*.xlsx\` (top level): the ${tables.length} source table${tables.length === 1 ? '' : 's'}: ${tables.map(t => `${t.name} (${t.rowCount.toLocaleString()} rows)`).join(', ')}.`);
+  if (tableau && tables.length) L.push('- `*.tds`: a Tableau data source for each source table; keep it next to its .xlsx.');
   if (textTiles) L.push(`- The ${textTiles} text box${textTiles === 1 ? '' : 'es'} on the dashboard ${textTiles === 1 ? 'is' : 'are'} visible in the image; recreate ${textTiles === 1 ? 'it' : 'them'} with a Text box (Power BI) or Text object (Tableau).`);
   L.push('', '## Quick start', '',
     '**Power BI:** Home > Get Data > Excel workbook > pick a `viz-data` file > tick the Table (not the sheet) > Load. Then follow that visual\'s section in `rebuild-guide.md`.', '',

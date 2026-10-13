@@ -456,7 +456,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
                             const col = table.columns.find(c => c.name === e.target.value);
                             updateVisual({ groupBy: e.target.value, dateGrain: col && col.isoDate ? 'month' : 'none', splitBy: visual.splitBy === e.target.value ? '' : visual.splitBy });
                           }}>
-                            <option value="">(nothing — one total)</option>
+                            <option value="">(nothing, one total)</option>
                             {table && <ColumnOptions columns={table.columns} />}
                           </select>
                         )}
@@ -473,7 +473,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
                     </div>
 
                     {visual.groupBy && (
-                      <Field label="Split by (legend)" hint="One series per value — stacked, grouped, or one line each.">
+                      <Field label="Split by (legend)" hint="Draws one series per value, as stacked bars, grouped bars, or separate lines.">
                         {id => (
                           <select id={id} className="select" value={visual.splitBy || ''} onChange={e => updateVisual({ splitBy: e.target.value })}>
                             <option value="">No split</option>
@@ -550,7 +550,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
                       <button type="button" className="btn btn-secondary btn-sm" onClick={runSql} disabled={!sqlText.trim()}>
                         <i className="ph ph-play" aria-hidden="true" /> Run query
                       </button>
-                      <span className="field-hint">{sqlDirty ? 'Edited — run to update the preview.' : '⌘/Ctrl + Enter runs it. Read-only: SELECT or WITH.'}</span>
+                      <span className="field-hint">{sqlDirty ? 'Edited. Run it to update the preview.' : '⌘/Ctrl + Enter runs it. Read-only: SELECT or WITH.'}</span>
                     </div>
                     <details className="schema-helper">
                       <summary>Tables &amp; columns</summary>
@@ -665,7 +665,7 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
                     {id => <input id={id} className="text-input text-input-sm" value={chartState.title} placeholder={spec ? spec.title : 'Untitled tile'} onChange={e => setChart({ title: e.target.value })} />}
                   </Field>
                   <Field label="Subtitle">
-                    {id => <input id={id} className="text-input text-input-sm" value={appearance.subtitle} placeholder="Optional — e.g. a source or date range" onChange={e => setAppearance({ subtitle: e.target.value })} />}
+                    {id => <input id={id} className="text-input text-input-sm" value={appearance.subtitle} placeholder="Optional, e.g. a source or date range" onChange={e => setAppearance({ subtitle: e.target.value })} />}
                   </Field>
                   <Toggle label="Show title" checked={appearance.showTitle} onChange={v => setAppearance({ showTitle: v })} />
                   <div className="field-row">
