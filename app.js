@@ -362,7 +362,7 @@ window.uploadFiles = async function(event) {
   const files = Array.from(event.target.files || []);
   if (files.length === 0) return;
   if (!SQL) {
-    setHomeUploadMessage('Still starting up — try again in a second.', true);
+    setHomeUploadMessage('Still starting up. Try again in a second.', true);
     return;
   }
 
@@ -403,7 +403,7 @@ window.uploadFiles = async function(event) {
     setFileInfo(loaded.length === 1
       ? `${loaded[0].fileName} (${formatFileSize(files[0])}, ${loaded[0].rowCount.toLocaleString()} rows) → table "${loaded[0].name}"`
       : `${loaded.length} tables loaded`
-        + (parsed.length > toLoad.length ? ` — ${parsed.length - toLoad.length} skipped (a workspace holds up to ${MAX_TABLES_PER_WORKSPACE} tables)` : ''));
+        + (parsed.length > toLoad.length ? `. Skipped ${parsed.length - toLoad.length} (a workspace holds up to ${MAX_TABLES_PER_WORKSPACE} tables)` : ''));
 
     afterWorkspaceTablesChanged();
     notifyTilesChange();
@@ -454,7 +454,7 @@ window.addTables = async function(event) {
     }
 
     setFileInfo(parsed.length > room
-      ? `Added ${loaded.map(t => t.name).join(', ')} — ${parsed.length - room} skipped (a workspace holds up to ${MAX_TABLES_PER_WORKSPACE} tables)`
+      ? `Added ${loaded.map(t => t.name).join(', ')}. Skipped ${parsed.length - room} (a workspace holds up to ${MAX_TABLES_PER_WORKSPACE} tables)`
       : `Added ${loaded.map(t => t.name).join(', ')}`);
 
     activeTableName = loaded[loaded.length - 1].name;

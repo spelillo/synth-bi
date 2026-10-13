@@ -397,7 +397,7 @@ export default function Dashboard() {
                   <span /><span /><span /><span />
                 </div>
                 <h3>Build your first tile</h3>
-                <p>Pick a table, what to group by, and what to measure — or write the SQL yourself. Every tile is its own query and chart.</p>
+                <p>Pick a table, what to group by, and what to measure, or write the SQL yourself. Each tile runs its own query and draws its own chart.</p>
                 <div className="dash-empty-actions">
                   <button type="button" className="btn btn-primary" onClick={() => openEditor({ isNew: true })}>
                     <i className="ph ph-plus" aria-hidden="true" /> Add your first tile
