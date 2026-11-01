@@ -21,6 +21,10 @@
     {
       "source": "/privacy",
       "destination": "/privacy.html"
+    },
+    {
+      "source": "/licenses",
+      "destination": "/licenses.html"
     }
   ],
   "redirects": [
@@ -28,6 +32,12 @@
       "source": "/about",
       "destination": "/welcome",
       "permanent": true
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/data-retention",
+      "schedule": "23 4 * * *"
     }
   ]
 }

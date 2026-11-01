@@ -500,7 +500,7 @@ function renderTableChips() {
 
   document.getElementById('add-table-btn').hidden = tables.length >= MAX_TABLES_PER_WORKSPACE;
   bar.innerHTML = tables.map(t => `
-    <div class="table-chip${t.name === activeTableName ? ' active' : ''}" data-table="${escapeAttr(t.name)}" role="button" aria-pressed="${t.name === activeTableName}" aria-label="Table: ${escapeAttr(t.name)}" tabindex="0" onclick="handleChipClick(event, '${t.name}')" onkeydown="handleChipKeydown(event, '${t.name}')">
+    <div class="table-chip${t.name === activeTableName ? ' active' : ''}" data-table="${escapeAttr(t.name)}" role="group" aria-label="Table: ${escapeAttr(t.name)}${t.name === activeTableName ? ' (selected)' : ''}" tabindex="0" onclick="handleChipClick(event, '${t.name}')" onkeydown="handleChipKeydown(event, '${t.name}')">
       <i class="ph ${t.sourceType === 'xlsx' ? 'ph-microsoft-excel-logo' : t.sourceType === 'json' ? 'ph-brackets-curly' : 'ph-file-csv'} chip-icon" aria-hidden="true"></i>
       <span class="chip-name" data-table="${escapeAttr(t.name)}">${escapeHtml(t.name)}</span>
       <span class="chip-rows">${t.rowCount.toLocaleString()}</span>
@@ -1771,6 +1771,7 @@ const MODAL_CLOSE_FN = {
   'signin-required-modal': 'closeSigninRequiredModal',
   'account-modal': 'closeAccountModal',
   'settings-modal': 'closeSettingsPanel',
+  'delete-account-modal': 'closeDeleteAccountModal',
   'help-modal': 'closeHelpPanel',
   'delete-table-modal': 'closeDeleteTableModal',
   'relationship-type-modal': 'closeRelationshipTypeModal',

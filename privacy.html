@@ -4,19 +4,24 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Synth-BI: privacy policy</title>
-  <meta name="description" content="How Synth-BI handles your data.">
+  <meta name="description" content="What Synth BI collects, how your files are processed in your browser, what goes to the AI assistant, how long we keep data, and how to download or delete it.">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
+  <style>
+    .legal-todo { background: #fff3b0; color: #3a2a00; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+    .mk-legal table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 14.5px; line-height: 21px; }
+    .mk-legal th, .mk-legal td { border: 1px solid #d5d7d2; padding: 8px 10px; text-align: left; vertical-align: top; color: var(--color-body); }
+    .mk-legal th { background: #f3f4f1; font-weight: 600; }
+    .mk-legal ul { padding-left: 22px; }
+  </style>
   <!-- Adapted from synth-sql's privacy.html for synth-bi: Excel, saved dashboards and table data, local-only AI query results, local export. -->
 </head>
 <body>
   <header class="mk-nav">
-    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <a href="/" class="mk-brand" aria-label="SynthBI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
     <nav class="mk-nav-links" aria-label="Main">
       <a href="/welcome">About</a>
       <a href="/guides">Guides</a>
@@ -28,31 +33,67 @@
   <main class="mk-main mk-legal">
     <div class="mk-card">
       <h1>Privacy Policy</h1>
-      <p class="mk-updated">Last updated: September 25, 2026</p>
+      <p class="mk-updated">Last updated: November 1, 2026</p>
 
-      <h2>What we collect</h2>
-      <p>In Lite Mode: nothing. In Normal Mode: the email address you sign in with, a count of your AI assistant requests (used for rate limiting), and any dashboard you explicitly save, including its tables' data, tiles, layout, settings, and assistant conversation.</p>
+      <p>This policy covers Synth BI at bi.synth-sql.com. Synth BI is part of Synth and is run by <span class="legal-todo">[SEAN: your legal name or company name]</span> ("we", "us"). You sign in with your Synth account, which is covered by <a href="https://synth-sql.com/privacy">Synth's privacy policy</a> too.</p>
 
-      <h2>How your data is processed</h2>
-      <p>Your files are parsed into a SQLite database running entirely inside your browser tab, using WebAssembly. Queries, charts, and exported files (Excel workbooks, Tableau data sources, dashboard images) are all generated on your device. Your data leaves your device only if you sign in and click Save to cloud, in which case it's stored in our database provider (Supabase) and readable only by your account.</p>
+      <h2 id="what-we-collect">What we collect</h2>
+      <ul>
+        <li><strong>Your account:</strong> Synth BI uses your Synth account (email address and password, stored hashed by our sign-in provider), plus which version of the Terms and this policy you accepted and when.</li>
+        <li><strong>Dashboards you save:</strong> only when you sign in and save: the tables' data, the tiles, layout, settings, confirmed relationships, a thumbnail image and the assistant conversation.</li>
+        <li><strong>The time of each AI assistant request</strong>, to apply the daily usage limit.</li>
+      </ul>
+      <p>Without an account (Lite Mode) we don't store anything about you. Synth BI doesn't use analytics or tracking of any kind.</p>
 
-      <h2>The AI assistant &amp; third-party processing</h2>
-      <p>When you use the assistant, your message plus your tables' schema (table and column names, column types, and row counts), your dashboard's tile titles and queries, and recent messages in the conversation are sent to our AI provider (Groq) to generate a response. Your row data is never included: when the assistant writes a query, it runs in your browser and its results are shown only to you. If a drafted query fails, the database's error message (for example, "no such column") is sent back so the assistant can fix it. If you paste real data into your own message, that text is sent as part of the request.</p>
+      <h2 id="your-files">How your files are processed</h2>
+      <p>Your CSV, JSON and Excel files are loaded into a SQLite database inside your browser tab, using WebAssembly. Queries, charts and exports (Excel workbooks, Tableau data sources, dashboard images) are made on your device. Your data only leaves your device if you sign in and save a dashboard. If you open a saved Synth workspace in Synth BI, its files are read from your Synth account.</p>
 
-      <h2>Cookies &amp; local storage</h2>
-      <p>Interface preferences, such as the assistant panel's width, are stored in your browser's local storage, on your device only. Signed-in sessions use a standard authentication token. We don't use advertising or third-party tracking cookies.</p>
+      <h2 id="ai">The AI assistant</h2>
+      <p>When you use the assistant, we send our AI provider, Groq, your message, your tables' names, column names and types and row counts, your dashboard's tile titles, chart settings and queries, and recent messages in the conversation. If a drafted query fails, the database's error message (for example, "no such column") is sent so the assistant can fix it. Your row data isn't included: queries the assistant writes run in your browser and only you see the results. Anything you type yourself is sent, so if you paste data into a message, that text goes too.</p>
+      <p>Replies and drafted tiles are written by AI and are labeled that way in the app. They can be wrong.</p>
+      <p>We don't use your files, dashboards or conversations to train AI models, and we don't let anyone else do so. <span class="legal-todo">[SEAN: check Groq's current API terms and data retention for this account, then state here whether Groq keeps or trains on prompts.]</span></p>
 
-      <h2>Your choices &amp; data deletion</h2>
-      <p>You can delete any saved dashboard yourself from the home page; this removes its tables' data from storage too. To delete your account entirely, contact us and we'll remove your data.</p>
+      <h2 id="cookies">Cookies and local storage</h2>
+      <p>If you sign in, a sign-in cookie keeps you signed in across bi.synth-sql.com and synth-sql.com. Your browser's local storage keeps interface preferences, such as the assistant panel's width. None of this is used for tracking or advertising, and there's nothing to opt in or out of.</p>
 
-      <h2>Children's privacy</h2>
-      <p>Synth-BI isn't directed at children under 13, and we don't knowingly collect data from them.</p>
+      <h2 id="subprocessors">Service providers we use</h2>
+      <table>
+        <thead><tr><th>Provider</th><th>What it does for Synth BI</th><th>Data involved</th></tr></thead>
+        <tbody>
+          <tr><td>Vercel</td><td>Hosts the website and server functions</td><td>Standard request data such as IP address and browser type</td></tr>
+          <tr><td>Supabase</td><td>Sign-in (through your Synth account), database and file storage</td><td>Account details and dashboards you save</td></tr>
+          <tr><td>Groq</td><td>Runs the AI model behind the assistant</td><td>What's described under "The AI assistant"</td></tr>
+          <tr><td>jsDelivr</td><td>Delivers the open-source code libraries the app runs on</td><td>Your IP address, when your browser downloads them</td></tr>
+        </tbody>
+      </table>
+      <p>Some of these providers are in the United States, so your data may be processed there. <span class="legal-todo">[SEAN: if you serve people in the EU or UK, confirm each provider's data processing agreement and transfer terms are in place.]</span></p>
 
-      <h2>Changes to this policy</h2>
-      <p>We may update this Privacy Policy from time to time. Material changes will be reflected by updating the date above.</p>
+      <h2 id="retention">How long we keep data</h2>
+      <ul>
+        <li>Saved dashboards and their data: until you delete them or your account.</li>
+        <li>AI request times: 30 days.</li>
+      </ul>
+      <p>Deleted data can stay in our providers' backups for a short time before it's overwritten.</p>
 
-      <h2>Contact</h2>
-      <p>Questions about this policy, or want your data deleted? Reach us at <a href="mailto:synth.sql@gmail.com">synth.sql@gmail.com</a>.</p>
+      <h2 id="your-rights">Your choices and rights</h2>
+      <p>From the Account panel (click your email at the top of the app) you can:</p>
+      <ul>
+        <li><strong>Download my data:</strong> a file with every dashboard you've saved, including its tables' data.</li>
+        <li><strong>Delete account:</strong> permanently deletes your Synth account and its data in both Synth BI and Synth.</li>
+      </ul>
+      <p>You can also delete single dashboards from the home page. To correct something, object to how we use your data, or ask what we hold, email <a href="mailto:synth.sql@gmail.com">synth.sql@gmail.com</a>. We'll answer within 30 days. Depending on where you live (for example the EU, the UK or California), you may have further rights under local law, including the right to complain to your data protection authority. We don't sell your personal information or share it for advertising.</p>
+
+      <h2 id="children">Children</h2>
+      <p>You must be at least 13 to create an account, and Synth BI isn't directed at children under 13. We don't knowingly collect personal information from children under 13. If you think a child has given us personal information, email us and we'll delete it.</p>
+
+      <h2 id="security">Security</h2>
+      <p>Saved dashboards are only readable by your account, connections use HTTPS, and passwords are stored hashed by our sign-in provider. No system is perfectly secure, but if a breach affects your data we'll tell you as the law requires.</p>
+
+      <h2 id="changes">Changes to this policy</h2>
+      <p>When we change this policy we'll update the date above. If a change is significant, we'll let account holders know by email or in the app before it takes effect.</p>
+
+      <h2 id="contact">Contact</h2>
+      <p>Email <a href="mailto:synth.sql@gmail.com">synth.sql@gmail.com</a>, or write to <span class="legal-todo">[SEAN: legal name and postal address]</span>.</p>
     </div>
   </main>
 
