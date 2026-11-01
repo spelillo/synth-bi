@@ -12,9 +12,7 @@
     tokens.css (design tokens) + app.css (shell components).
   -->
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Manrope:wght@400;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/app.css">
@@ -60,7 +58,7 @@
       </section>
 
       <section class="home-upload hero-band" aria-labelledby="home-upload-title">
-        <div id="home-dropzone" class="home-dropzone" tabindex="0" role="button" aria-describedby="home-upload-sub">
+        <div id="home-dropzone" class="home-dropzone">
           <h1 id="home-upload-title" class="display-hero">Turn any file into a dashboard</h1>
           <p id="home-upload-sub" class="home-dropzone-sub">Drop a <strong>CSV</strong>, <strong>JSON</strong>, or <strong>Excel</strong> file. It loads into a real database in your browser, and never leaves unless you save it.</p>
           <button type="button" class="btn btn-primary btn-lg" id="home-dropzone-btn">
@@ -270,6 +268,10 @@
               </div>
               <p class="account-help" id="auth-password-help" hidden>At least 8 characters.</p>
             </div>
+            <div class="account-consent" id="auth-consent-row" hidden>
+              <input type="checkbox" id="auth-consent">
+              <label for="auth-consent">I'm at least 13 and I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</label>
+            </div>
             <button type="submit" class="btn btn-primary account-submit" id="auth-panel-submit-btn">Sign in</button>
             <div id="auth-message" class="account-message" role="status" aria-live="polite"></div>
           </form>
@@ -352,8 +354,30 @@
         <span id="settings-email"></span>
         <span id="settings-member-since" class="file-info"></span>
       </div>
+      <div class="settings-row">
+        <span class="settings-label">Your data</span>
+        <span class="file-info">Download everything saved in Synth BI, or delete your account. Your Synth account works on both Synth and Synth BI, so deleting it removes your data in both. <a href="/privacy#your-rights" target="_blank" rel="noopener">How we handle your data</a></span>
+        <div class="settings-data-actions">
+          <button class="btn btn-secondary btn-sm" id="export-data-btn" onclick="exportMyData()">Download my data</button>
+          <button class="btn btn-secondary btn-sm" onclick="openDeleteAccountModal()">Delete account</button>
+        </div>
+        <span id="export-data-msg" class="file-info" role="status" aria-live="polite"></span>
+      </div>
       <div class="modal-actions">
         <button class="btn btn-tertiary" onclick="signOutUser()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="delete-account-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-account-title" hidden>
+    <div class="modal modal-small">
+      <div class="modal-icon modal-icon-negative"><i class="ph ph-warning" aria-hidden="true"></i></div>
+      <h2 class="modal-title" id="delete-account-title">Delete your account?</h2>
+      <p class="modal-body">This permanently deletes your Synth account and everything in it, on both apps: your Synth BI dashboards and their data, and your Synth workspaces, files, chats and Learn progress. It can't be undone. Download your data first if you want a copy.</p>
+      <p class="modal-body" id="delete-account-msg" role="status" aria-live="polite"></p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteAccountModal()">Keep my account</button>
+        <button class="btn btn-danger" id="delete-account-confirm-btn" onclick="confirmDeleteAccount()">Delete account</button>
       </div>
     </div>
   </div>
@@ -396,7 +420,7 @@
       <div class="help-sections">
         <section>
           <h3>Your data stays in this tab</h3>
-          <p>Every file loads into a SQLite database running inside this browser tab. Nothing is sent anywhere unless you sign in and choose to save or use the AI assistant. Even then, the assistant only ever sees column names and types, never your rows.</p>
+          <p>Every file loads into a SQLite database running inside this browser tab. Nothing is sent anywhere unless you sign in and choose to save or use the AI assistant. Even then, the assistant sees your table structure (table and column names and types), never your rows.</p>
         </section>
         <section>
           <h3>Tables</h3>

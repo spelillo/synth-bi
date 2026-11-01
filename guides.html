@@ -6,9 +6,7 @@
   <title>Synth-BI: guides</title>
   <meta name="description" content="How to build a dashboard, import Excel workbooks, use the AI assistant, customize colors and layout, and export to Power BI or Tableau with Synth-BI.">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
@@ -16,7 +14,7 @@
 </head>
 <body>
   <header class="mk-nav">
-    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <a href="/" class="mk-brand" aria-label="SynthBI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
     <nav class="mk-nav-links" aria-label="Main">
       <a href="/welcome">About</a>
       <a href="/guides" aria-current="page">Guides</a>
@@ -71,7 +69,7 @@
           <p>Ask about your data ("which region sold the most last quarter?") or how to do something ("how do I make a stacked chart?"). For data questions it writes a query that runs in your browser and shows the result under its answer. The assistant never sees the result. Click <strong>Make a tile</strong> to turn any query into a chart.</p>
           <h3>Build</h3>
           <p>Describe what you want: "revenue by month as a smooth line, split by region, in blue". The draft opens in the tile editor as a preview, where you can change anything before adding it. You can also ask it to change an existing tile ("make the treemap a doughnut on a dark background") or add a title text box.</p>
-          <p class="mk-tip">The assistant only ever sees your column names and types, never your rows.</p>
+          <p class="mk-tip">The assistant sees your table structure (table and column names and types), never your rows.</p>
         </article>
 
         <article class="mk-article" id="customize">

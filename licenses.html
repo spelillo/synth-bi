@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Synth-BI: third-party notices</title>
+  <meta name="description" content="Open-source software and fonts used by Synth BI, and their licenses.">
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/fonts/fonts.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
+  <link rel="stylesheet" href="/tokens.css">
+  <link rel="stylesheet" href="/marketing.css">
+  <style>
+    .legal-todo { background: #fff3b0; color: #3a2a00; padding: 1px 4px; border-radius: 3px; font-weight: 600; }
+    .mk-legal table { width: 100%; border-collapse: collapse; margin: 8px 0 16px; font-size: 14.5px; line-height: 21px; }
+    .mk-legal th, .mk-legal td { border: 1px solid #d5d7d2; padding: 8px 10px; text-align: left; vertical-align: top; color: var(--color-body); }
+    .mk-legal th { background: #f3f4f1; font-weight: 600; }
+    .mk-legal ul { padding-left: 22px; }
+  </style>
+  <!-- Adapted from synth-sql's terms.html for synth-bi: dashboards, Excel, AI Build mode, export. -->
+</head>
+<body>
+  <header class="mk-nav">
+    <a href="/" class="mk-brand" aria-label="SynthBI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <nav class="mk-nav-links" aria-label="Main">
+      <a href="/welcome">About</a>
+      <a href="/guides">Guides</a>
+      <a href="/?auth=signin">Sign in</a>
+      <a href="/" class="btn btn-tertiary btn-sm">Open Synth-BI</a>
+    </nav>
+  </header>
+
+  <main class="mk-main mk-legal">
+    <div class="mk-card">
+      <h1>Third-party notices</h1>
+      <p class="mk-updated">Last updated: November 1, 2026</p>
+      <p>Synth BI is built with the open-source software and fonts below. Each is used under its license, linked here. Copyright in each belongs to its authors.</p>
+      <table>
+        <thead><tr><th>Component</th><th>License</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td>SQLite (via sql.js)</td><td><a href="https://www.sqlite.org/copyright.html">Public domain</a></td><td>Runs your queries in the browser</td></tr>
+          <tr><td>sql.js 1.8.0</td><td><a href="https://github.com/sql-js/sql.js/blob/master/LICENSE">MIT</a></td><td>SQLite compiled to WebAssembly</td></tr>
+          <tr><td>Supabase JS client</td><td><a href="https://github.com/supabase/supabase-js/blob/master/LICENSE">MIT</a></td><td>Sign-in and saving</td></tr>
+          <tr><td>React and React DOM 18</td><td><a href="https://github.com/facebook/react/blob/main/LICENSE">MIT</a></td><td>Dashboard canvas</td></tr>
+          <tr><td>React-Grid-Layout</td><td><a href="https://github.com/react-grid-layout/react-grid-layout/blob/master/LICENSE">MIT</a></td><td>Dashboard tile layout</td></tr>
+          <tr><td>SheetJS Community Edition 0.20.3</td><td><a href="/vendor/LICENSE-SheetJS.txt">Apache License 2.0</a></td><td>Reads Excel files (bundled; license included)</td></tr>
+          <tr><td>Pyodide 0.29.5</td><td><a href="https://github.com/pyodide/pyodide/blob/main/LICENSE">Mozilla Public License 2.0</a></td><td>Runs Python in the browser for Excel export</td></tr>
+          <tr><td>XlsxWriter 3.2.9</td><td><a href="https://github.com/jmcnamara/XlsxWriter/blob/main/LICENSE.txt">BSD 2-Clause</a></td><td>Builds Excel workbooks (license included in the bundled package)</td></tr>
+          <tr><td>Phosphor Icons 2.1.2</td><td><a href="https://github.com/phosphor-icons/web/blob/master/LICENSE">MIT</a></td><td>Icons</td></tr>
+          <tr><td>Inter</td><td><a href="/fonts/OFL-Inter.txt">SIL Open Font License 1.1</a></td><td>Font</td></tr>
+          <tr><td>Manrope</td><td><a href="/fonts/OFL-Manrope.txt">SIL Open Font License 1.1</a></td><td>Display font</td></tr>
+          <tr><td>JetBrains Mono</td><td><a href="/fonts/OFL-JetBrainsMono.txt">SIL Open Font License 1.1</a></td><td>Code font</td></tr>
+        </tbody>
+      </table>
+      <p>Power BI is a trademark of Microsoft and Tableau is a trademark of Salesforce. They're named only to describe export compatibility; Synth BI isn't affiliated with or endorsed by either.</p>
+    </div>
+  </main>
+
+  <footer class="mk-footer">
+    <div class="mk-footer-inner">
+      <span class="mk-brand-word">synth<span class="mk-brand-bi">BI</span></span>
+      <nav aria-label="Footer">
+        <a href="/welcome">About</a>
+        <a href="/guides">Guides</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="mailto:synth.sql@gmail.com">Support</a>
+      </nav>
+      <span class="mk-footer-copy">&copy; 2026 Synth. All rights reserved.</span>
+    </div>
+  </footer>
+</body>
+</html>

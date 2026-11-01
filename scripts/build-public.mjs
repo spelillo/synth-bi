@@ -12,7 +12,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'public');
 const EXTS = /\.(html|css|js|py|ico|png|svg|txt|xml)$/i;
 const SKIP_FILES = new Set(['package.json', 'package-lock.json', 'vercel.json']);
-const DIRS = ['shared', 'vendor', 'dashboard-dist'];
+const DIRS = ['shared', 'vendor', 'fonts', 'dashboard-dist'];
 
 if (!existsSync(join(root, 'dashboard-dist', 'dashboard.js'))) {
   console.error('dashboard-dist/ is missing — run the dashboard build first.');

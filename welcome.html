@@ -6,9 +6,7 @@
   <title>About Synth-BI: dashboards from any file, in your browser</title>
   <meta name="description" content="Synth-BI turns CSV, JSON, and Excel files into dashboards right in your browser. Build tiles by hand or with AI, then export to Power BI or Tableau.">
   <link rel="icon" type="image/png" href="/favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=Manrope:wght@800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/fonts.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/regular/style.css">
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/marketing.css">
@@ -16,7 +14,7 @@
 </head>
 <body>
   <header class="mk-nav">
-    <a href="/" class="mk-brand" aria-label="Synth-BI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
+    <a href="/" class="mk-brand" aria-label="SynthBI home"><span class="mk-brand-mark" aria-hidden="true"></span><span class="mk-brand-word">synth</span><span class="mk-brand-bi">BI</span></a>
     <nav class="mk-nav-links" aria-label="Main">
       <a href="/welcome" aria-current="page">About</a>
       <a href="/guides">Guides</a>
@@ -29,7 +27,7 @@
     <section class="mk-hero">
       <span class="mk-eyebrow">The next step after Synth for SQL</span>
       <h1 class="mk-display">Any file in. A dashboard out.</h1>
-      <p class="mk-lead">Drop a CSV, JSON, or Excel file and build a dashboard of charts, KPIs, and notes in minutes, by hand or by asking the AI. When it's ready, hand it to Power BI or Tableau. Your data stays in your browser the whole time.</p>
+      <p class="mk-lead">Drop a CSV, JSON, or Excel file and build a dashboard of charts, KPIs, and notes in minutes, by hand or by asking the AI. When it's ready, hand it to Power BI or Tableau. Your data stays in your browser unless you choose to save a dashboard.</p>
       <div class="mk-actions">
         <a href="/" class="btn btn-primary"><i class="ph ph-upload-simple" aria-hidden="true"></i> Start with a file</a>
         <a href="/guides" class="btn btn-tertiary">Read the guides</a>
@@ -51,7 +49,7 @@
         <div class="mk-card">
           <i class="ph ph-feather" aria-hidden="true"></i>
           <h3>Lite Mode (no account)</h3>
-          <p>Everything runs locally. Nothing is sent anywhere.</p>
+          <p>Everything runs locally, and your files aren't sent anywhere.</p>
           <ul class="mk-list">
             <li>Upload CSV, JSON, and Excel files</li>
             <li>Build tiles with the visual builder or SQL</li>

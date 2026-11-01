@@ -150,6 +150,12 @@ let pendingConfirmEmail = null;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Version of the Terms and Privacy Policy a new account agrees to, recorded
+// with the time in the new user's auth metadata. Bump it to the policies'
+// "Last updated" date whenever either changes. Accounts are shared with
+// synth-sql.com, whose auth.js records the same fields.
+const LEGAL_VERSION = '2026-11-01';
+
 function setAccountMessage(el, text, kind) {
   el.textContent = text;
   el.classList.toggle('error', kind === 'error');
@@ -213,6 +219,7 @@ window.setAuthPanelMode = function(mode) {
   document.getElementById('auth-panel-submit-btn').textContent = isSignin ? 'Sign in' : 'Create account';
   document.getElementById('auth-forgot-link').hidden = !isSignin;
   document.getElementById('auth-password-help').hidden = isSignin;
+  document.getElementById('auth-consent-row').hidden = isSignin;
   document.getElementById('auth-password').setAttribute('autocomplete', isSignin ? 'current-password' : 'new-password');
   document.getElementById('auth-switch-text').textContent = isSignin ? 'New to Synth-BI?' : 'Already have an account?';
   document.getElementById('auth-switch-link').textContent = isSignin ? 'Create an account' : 'Sign in';
@@ -238,6 +245,11 @@ window.authPanelSubmit = async function() {
   }
 
   const mode = authPanelMode;
+  if (mode === 'signup' && !document.getElementById('auth-consent').checked) {
+    setAccountMessage(msgEl, 'To create an account, confirm you\'re at least 13 and agree to the Terms and Privacy Policy.', 'error');
+    document.getElementById('auth-consent').focus();
+    return;
+  }
   setAccountMessage(msgEl, mode === 'signin' ? 'Signing in…' : 'Creating account…');
   submitBtn.disabled = true;
 
@@ -245,7 +257,7 @@ window.authPanelSubmit = async function() {
   try {
     ({ data, error } = mode === 'signin'
       ? await sb.auth.signInWithPassword({ email, password })
-      : await sb.auth.signUp({ email, password }));
+      : await sb.auth.signUp({ email, password, options: { data: { terms_version: LEGAL_VERSION, privacy_version: LEGAL_VERSION, terms_accepted_at: new Date().toISOString() } } }));
   } catch (err) {
     error = err;
   }
@@ -404,6 +416,84 @@ window.openSettingsPanel = function() {
 
 window.closeSettingsPanel = function() {
   document.getElementById('settings-modal').hidden = true;
+};
+
+// ---- Your data: download a copy, or delete the account ----
+// Dashboards are read through the same verified api/dashboards routes the
+// app uses; each table's data comes from its signed URL, so the download
+// includes everything Synth BI has saved for the account.
+window.exportMyData = async function() {
+  if (!sb || !currentUser) return;
+  const btn = document.getElementById('export-data-btn');
+  const msgEl = document.getElementById('export-data-msg');
+  btn.disabled = true;
+  msgEl.textContent = 'Gathering your data…';
+  try {
+    const { dashboards: list } = await authFetch('/api/dashboards');
+    const dashboards = [];
+    for (const d of list || []) {
+      const { dashboard, tables } = await authFetch(`/api/dashboards/${encodeURIComponent(d.id)}`);
+      const withData = [];
+      for (const t of tables || []) {
+        const { signedUrl, ...meta } = t;
+        let data = null;
+        let error;
+        try {
+          const r = await fetch(signedUrl);
+          if (!r.ok) throw new Error(`download failed (${r.status})`);
+          data = await readJsonBlob(await r.blob());
+        } catch (err) { error = err.message; }
+        withData.push({ ...meta, data, error });
+      }
+      dashboards.push({ ...dashboard, tables: withData });
+    }
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      account: { id: currentUser.id, email: currentUser.email, created_at: currentUser.created_at, metadata: currentUser.user_metadata || {} },
+      dashboards,
+      note: 'Also stored but not readable from the browser: the time of each AI assistant request (kept 30 days for rate limiting). Your Synth (synth-sql.com) data has its own download in Synth\'s Account Settings.',
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `synth-bi-data-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    msgEl.textContent = 'Downloaded.';
+  } catch (err) {
+    msgEl.textContent = `Couldn't build the download: ${err.message}`;
+  }
+  btn.disabled = false;
+};
+
+window.openDeleteAccountModal = function() {
+  document.getElementById('delete-account-msg').textContent = '';
+  document.getElementById('delete-account-confirm-btn').disabled = false;
+  document.getElementById('delete-account-modal').hidden = false;
+};
+
+window.closeDeleteAccountModal = function() {
+  document.getElementById('delete-account-modal').hidden = true;
+};
+
+window.confirmDeleteAccount = async function() {
+  if (!sb || !currentUser) return;
+  const btn = document.getElementById('delete-account-confirm-btn');
+  const msgEl = document.getElementById('delete-account-msg');
+  btn.disabled = true;
+  msgEl.textContent = 'Deleting…';
+  try {
+    await authFetch('/api/delete-account?full=1', { method: 'POST' });
+  } catch (err) {
+    msgEl.textContent = err.message;
+    btn.disabled = false;
+    return;
+  }
+  closeDeleteAccountModal();
+  try { await signOutUser(); } catch (e) {}
+  alert('Your account and its data have been deleted.');
 };
 
 window.signOutUser = async function() {

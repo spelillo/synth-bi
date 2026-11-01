@@ -239,7 +239,7 @@ export default function AiPanel({ motionState = 'open', onCollapse, onReviewDraf
           <div className="ai-locked-card">
             <i className="ph ph-lock-simple" aria-hidden="true" />
             <p className="ai-locked-title">Sign in to use the AI assistant</p>
-            <p className="ai-locked-body">Ask questions about your data, or describe a chart (“revenue by month, stacked by region, in blue”) and fine-tune the draft before it's added. It only ever sees column names and types, never your rows.</p>
+            <p className="ai-locked-body">Ask questions about your data, or describe a chart (“revenue by month, stacked by region, in blue”) and fine-tune the draft before it's added. It sees your table structure, never your rows.</p>
             <div className="ai-locked-actions">
               <button type="button" className="btn btn-tertiary btn-sm" onClick={() => window.openAccountModal && window.openAccountModal('signin')}>Sign in</button>
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => window.openAccountModal && window.openAccountModal('signup')}>Create a free account</button>
@@ -330,6 +330,7 @@ export default function AiPanel({ motionState = 'open', onCollapse, onReviewDraf
           <i className="ph ph-paper-plane-right" aria-hidden="true" />
         </button>
       </form>
+      <p className="ai-disclosure">Replies and drafted tiles are AI-generated and can be wrong. Check them before you rely on them.</p>
     </aside>
   );
 }

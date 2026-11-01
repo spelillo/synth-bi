@@ -14,7 +14,7 @@
   --color-ink: #0e0f0c;
   --color-ink-deep: #163300;
   --color-body: #454745;
-  --color-mute: #868685;
+  --color-mute: #656564; /* was #868685; darkened for WCAG AA 4.5:1 text contrast */
 
   --color-canvas: #ffffff;
   --color-canvas-soft: #e8ebe6;

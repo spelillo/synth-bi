@@ -103,7 +103,7 @@ code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.9em;
 .mk-footer nav { display: flex; gap: var(--space-xl); flex-wrap: wrap; }
 .mk-footer nav a { color: var(--color-canvas-soft); text-decoration: none; }
 .mk-footer nav a:hover { color: var(--color-primary); }
-.mk-footer-copy { color: var(--color-mute); }
+.mk-footer-copy { color: #a3a3a1; }
 
 @media (max-width: 900px) {
   .mk-grid-3 { grid-template-columns: 1fr; }
