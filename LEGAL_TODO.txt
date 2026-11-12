@@ -1,0 +1,24 @@
+LEGAL TO-DO: Synth BI Privacy Policy and Terms of Use
+
+These items were removed from the live pages for now. Address each one, then add the wording back to the page.
+
+1. [Privacy Policy / Contact section]
+   Add a postal address: "or write to SPE, [postal address]".
+
+2. [Privacy Policy / The AI assistant]
+   check Groq's current API terms and data retention for this account, then state here whether Groq keeps or trains on prompts.
+
+3. [Privacy Policy / Service providers we use]
+   if you serve people in the EU or UK, confirm each provider's data processing agreement and transfer terms are in place.
+
+4. [Terms of Use / Contact section]
+   Add a postal address: "or write to SPE, [postal address]".
+
+5. [Terms of Use / Section 12. Governing law (removed)]
+   Restore this section: "These Terms are governed by the laws of [your state or country], except where the law where you live says otherwise." Sections after it were renumbered down by one.
+
+6. [Terms of Use / 1. Who we are and this agreement]
+   where SPE is registered
+
+7. [Terms of Use / 8. Copyright complaints]
+   add your registered DMCA designated agent's name and address here, the same as on synth-sql.com/terms.
