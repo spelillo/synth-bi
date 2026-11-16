@@ -203,7 +203,7 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
   position: fixed; inset: 0; z-index: 350;
   display: flex; align-items: center; justify-content: center;
   padding: var(--space-lg);
-  background: rgba(14, 15, 12, 0.45);
+  background: var(--scrim);
 }
 .tile-editor {
   width: min(1180px, 100%);
@@ -223,17 +223,7 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
 .tile-editor-footer { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-sm); padding: var(--space-lg) var(--space-xl); border-top: 1px solid var(--color-canvas-soft); }
 .tile-editor-error { margin: 0 auto 0 0; color: var(--color-negative-darkest); font-size: 14px; font-weight: 600; }
 
-.inline-notice {
-  display: flex; align-items: center; gap: var(--space-md); flex-wrap: wrap;
-  margin: var(--space-md) var(--space-xl) 0;
-  padding: var(--space-md) var(--space-lg);
-  background: #fff6d6; color: var(--color-warning-content);
-  border-radius: var(--radius-lg);
-  font-size: 14px; line-height: 20px;
-}
-.inline-notice > .ph { font-size: 18px; color: var(--color-warning-deep); }
-.inline-notice > span { flex: 1; min-width: 200px; }
-.inline-notice-actions { display: flex; gap: var(--space-sm); }
+/* .inline-notice: see the principles layer at the end. */
 
 .visual-fields, .sql-fields { display: flex; flex-direction: column; gap: var(--space-lg); }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -758,3 +748,73 @@ body.is-resizing-panel { cursor: col-resize; user-select: none; }
   .tile-editor, .export-modal { border: 1px solid var(--color-ink); }
   .segmented-thumb { box-shadow: inset 0 0 0 1px var(--color-ink); }
 }
+
+/* =====================================================================
+   Principles layer: connected steps, fewer options up front, warnings
+   styled as content. Colors, fonts and motion come from tokens.css and
+   the feel layer above; this only changes layout.
+   ===================================================================== */
+
+/* ---------- Connectedness: Data -> Visual -> Format on one line ---------- */
+.step-tabs { display: inline-flex; align-items: center; gap: 0; }
+.step-tab {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 6px 4px; margin: 0;
+  border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: 14px; font-weight: 600; color: var(--color-mute);
+}
+/* The line between nodes: drawn on every step but the first, from the
+   previous label to this node. */
+.step-tab + .step-tab { margin-left: 52px; }
+.step-tab + .step-tab::before {
+  content: ''; position: absolute; top: 50%; right: calc(100% + 8px);
+  width: 36px; height: 2px; margin-top: -1px;
+  background: var(--color-canvas-soft); border-radius: 1px;
+  pointer-events: none;
+}
+.step-tab.is-done + .step-tab::before,
+.step-tab.is-done + .step-tab.is-active::before { background: var(--color-ink); }
+.step-tab-node {
+  width: 26px; height: 26px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 1.5px solid #c9ccc5; background: var(--color-canvas);
+  font-size: 12px; font-weight: 700; color: var(--color-mute);
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.step-tab.is-done .step-tab-node { border-color: var(--color-ink); color: var(--color-ink); }
+.step-tab.is-active { color: var(--color-ink); }
+.step-tab.is-active .step-tab-node { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-primary); }
+.step-tab:hover:not(.is-active) { color: var(--color-ink); }
+.step-tab:hover:not(.is-active) .step-tab-node { border-color: var(--color-ink); }
+.step-tab:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; border-radius: var(--radius-md); }
+@media (max-width: 767px) {
+  .step-tab + .step-tab { margin-left: 34px; }
+  .step-tab + .step-tab::before { width: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .step-tab-node { transition: none; } }
+
+/* ---------- Choice overload: six chart types up front ---------- */
+.type-gallery-more { align-self: flex-start; margin: 2px 0 var(--space-sm); }
+.type-gallery-more .ph { font-size: 12px; }
+
+/* ---------- Banner blindness: the SQL warning as a content card ---------- */
+.inline-notice {
+  display: flex; align-items: flex-start; gap: var(--space-md); flex-wrap: nowrap;
+  margin: 0;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--color-canvas); color: var(--color-ink);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(14, 15, 12, 0.05);
+}
+.inline-notice-icon {
+  flex: none; width: 30px; height: 30px; border-radius: 9px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff6d6; color: var(--color-warning-deep); font-size: 17px;
+}
+.inline-notice-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.inline-notice-text strong { font-size: 14px; line-height: 20px; }
+.inline-notice-text > span { font-size: 13px; line-height: 19px; color: var(--color-body); }
+.inline-notice-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; margin-top: var(--space-sm); }

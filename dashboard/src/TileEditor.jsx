@@ -182,35 +182,111 @@ function DataPreview({ result }) {
   );
 }
 
+// Choice overload: the gallery opens on six chart types that fit this
+// data (plus the current one), and the full grouped list is one click away.
+const SUGGESTED_ORDER = ['column', 'bar', 'line', 'pie', 'kpi', 'table', 'area', 'doughnut', 'stackedColumn', 'scatter', 'histogram', 'treemap'];
+const SUGGESTED_COUNT = 6;
+
+function suggestedTypes(info, rowCount, value) {
+  const allowed = id => (info ? chartTypeAllowed(id, info, rowCount) : true);
+  const ids = SUGGESTED_ORDER.filter(id => CHART_TYPE_IDS_SET.has(id) && allowed(id)).slice(0, SUGGESTED_COUNT);
+  // The chosen type always shows, in the last slot if the six are full.
+  if (value && CHART_TYPE_IDS_SET.has(value) && !ids.includes(value)) {
+    if (ids.length >= SUGGESTED_COUNT) ids[SUGGESTED_COUNT - 1] = value;
+    else ids.push(value);
+  }
+  return ids.map(id => CHART_TYPES.find(t => t.id === id));
+}
+const CHART_TYPE_IDS_SET = new Set(CHART_TYPES.map(t => t.id));
+
+function TypeButton({ t, info, rowCount, value, onChange }) {
+  const allowed = info ? chartTypeAllowed(t.id, info, rowCount) : true;
+  const active = value === t.id;
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={active}
+      aria-label={t.label}
+      className={`chart-type-btn${active ? ' is-active' : ''}`}
+      disabled={!info || !allowed}
+      title={!allowed ? `${t.label}: ${chartTypeHint(t.id)}` : t.label}
+      onClick={() => onChange(t.id)}
+    >
+      <i className={`ph ${t.icon}`} aria-hidden="true" />
+      <span>{t.label}</span>
+    </button>
+  );
+}
+
 function TypeGallery({ info, rowCount, value, onChange }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!showAll) {
+    const picks = suggestedTypes(info, rowCount, value);
+    return (
+      <div className="type-gallery">
+        <div className="type-group">
+          <div className="type-group-label">Suggested for this data</div>
+          <div className="chart-type-grid" role="radiogroup" aria-label="Suggested charts">
+            {picks.map(t => <TypeButton key={t.id} t={t} info={info} rowCount={rowCount} value={value} onChange={onChange} />)}
+          </div>
+        </div>
+        <button type="button" className="link-btn type-gallery-more" aria-expanded="false" onClick={() => setShowAll(true)}>
+          All {CHART_TYPES.length} chart types <i className="ph ph-caret-down" aria-hidden="true" />
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="type-gallery">
+      <button type="button" className="link-btn type-gallery-more" aria-expanded="true" onClick={() => setShowAll(false)}>
+        Fewer chart types <i className="ph ph-caret-up" aria-hidden="true" />
+      </button>
       {CHART_TYPE_GROUPS.map(group => (
         <div key={group} className="type-group">
           <div className="type-group-label">{group}</div>
           <div className="chart-type-grid" role="radiogroup" aria-label={`${group} charts`}>
-            {CHART_TYPES.filter(t => t.group === group).map(t => {
-              const allowed = info ? chartTypeAllowed(t.id, info, rowCount) : true;
-              const active = value === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  aria-label={t.label}
-                  className={`chart-type-btn${active ? ' is-active' : ''}`}
-                  disabled={!info || !allowed}
-                  title={!allowed ? `${t.label}: ${chartTypeHint(t.id)}` : t.label}
-                  onClick={() => onChange(t.id)}
-                >
-                  <i className={`ph ${t.icon}`} aria-hidden="true" />
-                  <span>{t.label}</span>
-                </button>
-              );
-            })}
+            {CHART_TYPES.filter(t => t.group === group).map(t => <TypeButton key={t.id} t={t} info={info} rowCount={rowCount} value={value} onChange={onChange} />)}
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+// Connectedness: Data, Visual and Format are the steps of one flow (the
+// panels end in "Next: pick a visual"), so they read as numbered nodes on
+// one line rather than three loose tabs.
+const EDITOR_STEPS = [
+  { id: 'data', label: 'Data' },
+  { id: 'visual', label: 'Visual' },
+  { id: 'format', label: 'Format' },
+];
+
+function StepTabs({ steps, value, onChange, label }) {
+  const current = steps.findIndex(st => st.id === value);
+  const onKeyDown = e => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = steps[(current + (e.key === 'ArrowRight' ? 1 : steps.length - 1)) % steps.length];
+    onChange(next.id);
+    requestAnimationFrame(() => e.currentTarget && e.currentTarget.querySelector('.step-tab.is-active')?.focus());
+  };
+  return (
+    <div className="step-tabs" role="tablist" aria-label={label} onKeyDown={onKeyDown}>
+      {steps.map((st, i) => (
+        <button
+          key={st.id}
+          type="button"
+          role="tab"
+          aria-selected={i === current}
+          tabIndex={i === current ? 0 : -1}
+          className={`step-tab${i === current ? ' is-active' : ''}${i < current ? ' is-done' : ''}`}
+          onClick={() => onChange(st.id)}
+        >
+          <span className="step-tab-node" aria-hidden="true">{i + 1}</span>
+          <span className="step-tab-label">{st.label}</span>
+        </button>
       ))}
     </div>
   );
@@ -388,32 +464,12 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
         <header className="tile-editor-header">
           <h2 id={titleId}>{tile && draft ? 'Review the suggested change' : tile ? 'Edit tile' : draft ? 'Review the suggested tile' : 'Add a tile'}</h2>
           <div className="editor-tabs">
-            <Segmented
-              label="Editor panel"
-              value={panel}
-              onChange={setPanel}
-              options={[
-                { id: 'data', label: 'Data', icon: 'ph-database' },
-                { id: 'visual', label: 'Visual', icon: 'ph-chart-bar' },
-                { id: 'format', label: 'Format', icon: 'ph-palette' },
-              ]}
-            />
+            <StepTabs label="Editor panel" value={panel} onChange={setPanel} steps={EDITOR_STEPS} />
           </div>
           <button type="button" className="btn btn-icon tile-editor-close" onClick={onClose} aria-label="Close"><i className="ph ph-x" aria-hidden="true" /></button>
         </header>
 
         {draft && draft.note && <div className="draft-note"><i className="ph ph-sparkle" aria-hidden="true" /> {draft.note}</div>}
-
-        {confirmVisualSwitch && (
-          <div className="inline-notice" role="alert">
-            <i className="ph ph-warning" aria-hidden="true" />
-            <span>Switching to Visual rebuilds the query from the visual fields. Your SQL edits will be replaced.</span>
-            <div className="inline-notice-actions">
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setConfirmVisualSwitch(false)}>Keep my SQL</button>
-              <button type="button" className="btn btn-tertiary btn-sm" onClick={confirmSwitchToVisual}>Switch to Visual</button>
-            </div>
-          </div>
-        )}
 
         <div className="tile-editor-body">
           <section className="tile-editor-config" aria-label="Tile settings" ref={configEdgesRef}>
@@ -432,6 +488,22 @@ export default function TileEditor({ tile, draft, schema, schemaVersion, preview
                     ]}
                   />
                 </div>
+                {/* In the panel, right under the switch that caused it, and
+                    styled like the fields around it: a yellow strip across
+                    the top of the sheet read like a banner and got skipped. */}
+                {confirmVisualSwitch && (
+                  <div className="inline-notice" role="alert">
+                    <span className="inline-notice-icon" aria-hidden="true"><i className="ph ph-warning" /></span>
+                    <div className="inline-notice-text">
+                      <strong>Replace your SQL edits?</strong>
+                      <span>Visual rebuilds the query from the fields below, so the changes you made in SQL will be lost.</span>
+                      <div className="inline-notice-actions">
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setConfirmVisualSwitch(false)}>Keep my SQL</button>
+                        <button type="button" className="btn btn-tertiary btn-sm" onClick={confirmSwitchToVisual}>Switch to Visual</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {mode === 'visual' && visual ? (
                   <div className="visual-fields">
                     {schema.length > 1 ? (

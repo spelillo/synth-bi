@@ -82,8 +82,21 @@ async function initAuth() {
   });
 }
 
+// Only the address is kept, never the password, and only in this browser.
+const LAST_EMAIL_KEY = 'synth_last_email';
+function readLastEmail() {
+  try { return localStorage.getItem(LAST_EMAIL_KEY) || ''; } catch (e) { return ''; }
+}
+function rememberLastEmail(email) {
+  try { if (email) localStorage.setItem(LAST_EMAIL_KEY, email); } catch (e) {}
+}
+function clearLastEmail() {
+  try { localStorage.removeItem(LAST_EMAIL_KEY); } catch (e) {}
+}
+
 function handleAuthChange(session) {
   currentUser = session?.user || null;
+  if (currentUser && currentUser.email) rememberLastEmail(currentUser.email);
   const signInBtn = document.getElementById('sign-in-btn');
 
   if (currentUser) {
@@ -172,6 +185,13 @@ window.openAccountModal = function(mode, view) {
     return;
   }
   document.getElementById('account-modal').hidden = false;
+  // Fill in what we already know: the email this browser last signed in
+  // with, so signing back in is just the password.
+  const emailField = document.getElementById('auth-email');
+  if (!emailField.value.trim() && (mode || 'signin') === 'signin') {
+    const remembered = readLastEmail();
+    if (remembered) emailField.value = remembered;
+  }
   if (view) {
     showAccountView(view);
   } else if (pendingConfirmEmail) {
@@ -493,6 +513,7 @@ window.confirmDeleteAccount = async function() {
   }
   closeDeleteAccountModal();
   try { await signOutUser(); } catch (e) {}
+  clearLastEmail();
   alert('Your account and its data have been deleted.');
 };
 

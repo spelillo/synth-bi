@@ -115,7 +115,10 @@
   --shadow-popover: 0 1px 0 rgba(14, 15, 12, 0.04), 0 12px 32px rgba(14, 15, 12, 0.16);
   --shadow-sheet: 0 1px 0 rgba(14, 15, 12, 0.04), 0 32px 80px rgba(14, 15, 12, 0.28);
   --shadow-lift: 0 18px 40px rgba(14, 15, 12, 0.18), 0 2px 6px rgba(14, 15, 12, 0.08);
-  --scrim: rgba(14, 15, 12, 0.38);
+  /* Figure and ground: dims the page behind a dialog from about 19:1
+     contrast to about 2.5:1 (measured on the home view), so the dialog is
+     the only thing on screen that reads. */
+  --scrim: rgba(14, 15, 12, 0.66);
   --scrim-blur: blur(6px);
   --hairline: rgba(14, 15, 12, 0.12);
 
@@ -165,7 +168,7 @@
     --material-bar-blur: none;
     --material-popover: var(--color-canvas);
     --material-popover-blur: none;
-    --scrim: rgba(14, 15, 12, 0.55);
+    --scrim: rgba(14, 15, 12, 0.72);
     --scrim-blur: none;
   }
 }
@@ -179,7 +182,7 @@
     --material-popover-blur: none;
     --material-edge: var(--color-ink);
     --hairline: var(--color-ink);
-    --scrim: rgba(14, 15, 12, 0.6);
+    --scrim: rgba(14, 15, 12, 0.74);
     --scrim-blur: none;
   }
 }
