@@ -1436,8 +1436,10 @@ async function refreshSqlWorkspaceList() {
     select.innerHTML = `<option value="">${error ? "Couldn't load workspaces" : 'No Synth SQL workspaces yet'}</option>`;
     return;
   }
+  // Fill in what we know: the list is newest first, so the workspace you
+  // touched last is already picked and Load is one click.
   select.innerHTML = '<option value="">Choose a workspace…</option>'
-    + data.map(w => `<option value="${escapeAttr(w.id)}">${escapeHtml(w.name)}</option>`).join('');
+    + data.map((w, i) => `<option value="${escapeAttr(w.id)}"${i === 0 ? ' selected' : ''}>${escapeHtml(w.name)} · ${escapeHtml(timeAgo(w.updated_at))}</option>`).join('');
 }
 
 window.loadSelectedSqlWorkspace = function() {
@@ -1473,6 +1475,7 @@ let homeRenderToken = 0;
 async function renderHomeDashboards() {
   const body = document.getElementById('home-dashboards-body');
   if (!body) return;
+  body.classList.remove('is-peek-row');
   const token = ++homeRenderToken;
 
   if (!currentUser || !sb) {
@@ -1512,6 +1515,7 @@ async function renderHomeDashboards() {
     return;
   }
 
+  body.classList.toggle('is-peek-row', rows.length > 1);
   body.innerHTML = rows.map(d => {
     const tileCount = (d.tiles || []).filter(t => t.kind !== 'text').length;
     const tableCount = (d.dashboard_tables || []).length;
